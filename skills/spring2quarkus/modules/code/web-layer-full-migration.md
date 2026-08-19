@@ -69,8 +69,13 @@ public Order getOrder(@PathParam("id") Long id) {}
 |---|---|
 | `@PathVariable` | `@PathParam("name")` |
 | `@RequestParam` | `@QueryParam("name")` |
+| `@RequestParam Map<String, String>` | `@Context UriInfo` → `uriInfo.getQueryParameters()` |
 | `@RequestBody` | *(remove annotation — implicit in JAX-RS)* |
 | `@RequestHeader` | `@HeaderParam("name")` |
+| `@CookieValue` | `@CookieParam("name")` |
+| `@MatrixVariable` | `@MatrixParam("name")` |
+| `@ResponseBody` | *(remove — implicit in JAX-RS resources)* |
+| `@ModelAttribute` | `@BeanParam` + `@Consumes(MediaType.APPLICATION_FORM_URLENCODED)` |
 
 ### 4. Response Types
 
@@ -83,6 +88,33 @@ public ResponseEntity<Order> create(@RequestBody Order order) {
 // After
 public Response create(Order order) {
     return Response.ok(order).build();
+}
+```
+
+**`@ResponseStatus`** — two patterns:
+
+```java
+// Before — on a method
+@GetMapping("/{id}")
+@ResponseStatus(HttpStatus.ACCEPTED)
+public Order get(@PathVariable Long id) {}
+
+// After — return Response with explicit status
+@GET
+@Path("/{id}")
+public Response get(@PathParam("id") Long id) {
+    return Response.status(Response.Status.ACCEPTED).entity(order).build();
+}
+
+// Before — on a custom exception class
+@ResponseStatus(HttpStatus.NOT_FOUND)
+public class OrderNotFoundException extends RuntimeException {}
+
+// After — @ServerExceptionMapper
+@ServerExceptionMapper
+public Response handle(OrderNotFoundException ex) {
+    return Response.status(Response.Status.NOT_FOUND)
+        .entity(new ErrorResponse(ex.getMessage())).build();
 }
 ```
 
@@ -211,9 +243,15 @@ public class WelcomeController {
         model.addAttribute("message", "Welcome");
         return "welcome";  // view name
     }
+
+    @PostMapping("/todos")
+    public String create(@ModelAttribute Todo todo) {
+        todoService.save(todo);
+        return "redirect:/todos";
+    }
 }
 
-// After (Quarkus)
+// After (Quarkus) — @Inject Template variant
 @Path("/")
 public class WelcomeResource {
     @Inject
@@ -225,6 +263,73 @@ public class WelcomeResource {
         return welcome.data("message", "Welcome");
     }
 }
+```
+
+Alternatively, use `@CheckedTemplate` for type-safe template binding (preferred for production):
+
+```java
+// After (Quarkus) — @CheckedTemplate variant
+@Path("/")
+public class WelcomeResource {
+
+    @CheckedTemplate
+    public static class Templates {
+        public static native TemplateInstance welcome(String message);
+    }
+
+    @GET
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance get() {
+        return Templates.welcome("Welcome");
+    }
+}
+```
+
+When using `@CheckedTemplate`, template files must be located at
+`src/main/resources/templates/<ResourceClassName>/<methodName>.html`.
+
+**`@ModelAttribute` → `@BeanParam`** — for form POST handlers, replace Spring's `@ModelAttribute`
+with `@BeanParam` and declare `@Consumes(MediaType.APPLICATION_FORM_URLENCODED)`:
+
+```java
+// Before
+@PostMapping("/todos")
+public String create(@ModelAttribute Todo todo) {
+    todoService.save(todo);
+    return "redirect:/todos";
+}
+
+// After
+@POST
+@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+@Transactional
+public Response create(@BeanParam Todo todo) {
+    todoService.save(todo);
+    return Response.seeOther(URI.create("/todos")).build();
+}
+```
+
+**Redirects** — replace Spring's `return "redirect:/path"` with `Response.seeOther()`:
+
+```java
+// Before
+return "redirect:/todos";
+
+// After
+return Response.seeOther(URI.create("/todos")).build();
+```
+
+**Qute strict data map** — unlike Spring MVC's `Model`, Qute throws `TemplateException` at
+runtime if a key referenced in the template is missing from the data map. Every `.data()` or
+`@CheckedTemplate` call site must provide the **complete set of keys**, including on empty-result
+paths. Start migration with strict rendering disabled, fix all missing variables, then re-enable:
+
+```properties
+# During migration
+quarkus.qute.strict-rendering=false
+quarkus.qute.property-not-found-strategy=output-original
+# After all variables are confirmed present, switch to:
+# quarkus.qute.strict-rendering=true
 ```
 
 For templates in subdirectories, use `@io.quarkus.qute.Location("subdir/templateName")` on the

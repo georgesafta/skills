@@ -49,13 +49,18 @@ This document provides a concise catalog of transformation rules. Each agent fil
 
 ## RULE GROUP 4 — WEB LAYER MIGRATION
 
-**RULE WEB-1:** @RestController + @RequestMapping → @Path  
-**RULE WEB-2:** @GetMapping/@PostMapping/etc → @GET/@POST + @Path  
-**RULE WEB-3:** @RequestParam → @QueryParam  
-**RULE WEB-4:** @PathVariable → @PathParam  
-**RULE WEB-5:** @RequestBody → (implicit, no annotation)  
-**RULE WEB-6:** ResponseEntity → Response  
+**RULE WEB-1:** @RestController + @RequestMapping → @Path
+**RULE WEB-2:** @GetMapping/@PostMapping/etc → @GET/@POST + @Path
+**RULE WEB-3:** @RequestParam → @QueryParam
+**RULE WEB-4:** @PathVariable → @PathParam
+**RULE WEB-5:** @RequestBody → (implicit, no annotation)
+**RULE WEB-6:** ResponseEntity → Response
 **RULE WEB-7:** @ExceptionHandler → @Provider ExceptionMapper
+**RULE WEB-8:** @RequestHeader → @HeaderParam("name")
+**RULE WEB-9:** @CookieValue → @CookieParam("name")
+**RULE WEB-10:** @MatrixVariable → @MatrixParam("name")
+**RULE WEB-11:** @ResponseStatus → return Response with explicit status code; on exception classes replace with @ServerExceptionMapper
+**RULE WEB-12:** @ResponseBody → (remove — implicit in JAX-RS resources)
 
 ---
 
@@ -72,7 +77,7 @@ This document provides a concise catalog of transformation rules. Each agent fil
 ## RULE GROUP 6 — CONFIGURATION MIGRATION
 
 **RULE CFG-1:** @Configuration + @Bean → @ApplicationScoped + @Produces  
-**RULE CFG-2:** RestTemplate → JAX-RS Client  
+**RULE CFG-2:** RestTemplate → JAX-RS Client
 **RULE CFG-3:** Application properties mapping
 
 | Spring Property | Quarkus Property |

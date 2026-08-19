@@ -30,6 +30,12 @@ metadata:
 | `WebMvcConfigurer` | ❌ No — must be rewritten |
 | `@ControllerAdvice` (global `@ExceptionHandler`) | ❌ Partial — verify runtime behaviour |
 | `MultipartResolver` | ❌ No — must be rewritten |
+| `@CrossOrigin` | ❌ No — not processed |
+| `@InitBinder` | ❌ No — not processed |
+| `@ModelAttribute` (on methods/parameters) | ❌ No — not processed |
+| `@SessionAttributes` | ❌ No — not processed |
+| `Mono` / `Flux` (reactive return types) | ❌ No — not supported |
+| Multiple `@RestControllerAdvice` classes | ❌ Hard limit — only the **first** one discovered is registered; extras are silently ignored |
 
 > **Minimum Quarkus version:** `quarkus-spring-web` is available since **0.21.0**.
 > If the target version in `migration-spec.yaml` is older than this minimum, flag the conflict to
@@ -213,6 +219,10 @@ Spring MVC annotations are **intentionally kept**. Success means:
 Document these; they can be addressed later:
 - `@ControllerAdvice` / `@ExceptionHandler` usage (partially supported — verify runtime behaviour)
 - `HandlerInterceptor` / `WebMvcConfigurer` usage (not bridged — migrate manually if needed)
+- `@CrossOrigin` usage (not processed — configure CORS via `quarkus.http.cors.*` in `application.properties`)
+- `@InitBinder` / `@ModelAttribute` / `@SessionAttributes` usage (not processed — migrate manually to JAX-RS equivalents)
+- Reactive return types (`Mono`, `Flux`) — not supported; migrate to `Uni`/`Multi` (Mutiny)
+- Multiple `@RestControllerAdvice` classes — **hard limit**: only the first one discovered is registered; extras are silently ignored at runtime. Consolidate into a single class or migrate extra handlers to `@Provider ExceptionMapper`
 - Path pattern changes (verify intentional)
 
 **⚠️ Do not proceed to Phase 8B until validation gate passes!**
