@@ -30,21 +30,21 @@ Before taking any action:
 
 | Phase | Agent File | Primary Input | Primary Output |
 |---|---|---|---|
-| 0 | (orchestrator handles directly) | environment | migration-metadata/migration-context.json |
-| 1 | agents/01-discovery.prompt.md | source repo path | migration-metadata/repo-metadata.json |
-| 1b | agents/01b-dependency-analysis.prompt.md | pom.xml/build.gradle | migration-metadata/dependency-analysis.yaml |
-| 2 | agents/02-migration-planning.prompt.md | repo-metadata.json + dependency-analysis.yaml | migration-spec.yaml (root) |
-| 3 | agents/03-project-bootstrap.prompt.md | migration-spec.yaml | pom.xml + migration-reports/phase-03-project-bootstrap.json |
-| 4 | agents/04-database-migration.prompt.md | migration-spec.yaml + source SQL/config files | migration-reports/phase-04-database-migration.json |
-| 5 | agents/05-persistence-migration.prompt.md | migration-spec.yaml + entity files | migration-reports/phase-05-persistence-migration.json |
-| 6 | agents/06-service-migration.prompt.md | migration-spec.yaml + service files | migration-reports/phase-06-service-migration.json |
-| 7 | agents/07-messaging-migration.prompt.md | migration-spec.yaml + messaging files | migration-reports/phase-07-messaging-migration.json |
-| 8 | agents/08-web-layer-migration.prompt.md | migration-spec.yaml + controller files | migration-reports/phase-08-web-migration.json |
-| 8b | agents/08b-web-views-migration.prompt.md | migration-spec.yaml + view files + managed beans | migration-reports/phase-08b-web-views-migration.json |
-| 9 | agents/09-configuration.prompt.md | migration-spec.yaml + config files | migration-reports/phase-09-configuration-migration.json |
-| * | agents/10-compile-fix.prompt.md | compile errors (any phase) | migration-reports/compile-fix-report.json |
-| 11 | agents/11-validation.prompt.md | target project | migration-reports/phase-11-validation.json |
-| Final | agents/12-reporting.prompt.md | all phase reports | migration-summary.md (root) |
+| Environment Preparation | (orchestrator handles directly) | environment | migration-metadata/migration-context.json |
+| Repository Discovery | modules/discovery/discovery.md | source repo path | migration-metadata/repo-metadata.json |
+| Dependency Analysis | modules/discovery/dependency-analysis.md | pom.xml/build.gradle | migration-metadata/dependency-analysis.yaml |
+| Migration Planning | modules/planning/migration-planning.md | repo-metadata.json + dependency-analysis.yaml | migration-spec.yaml (root) |
+| Project Bootstrap | modules/build/project-bootstrap.md | migration-spec.yaml | pom.xml + migration-reports/phase-03-project-bootstrap.json |
+| Database Migration | modules/code/database-migration.md | migration-spec.yaml + source SQL/config files | migration-reports/phase-04-database-migration.json |
+| Persistence Migration | modules/code/persistence-migration.md | migration-spec.yaml + entity files | migration-reports/phase-05-persistence-migration.json |
+| Service Layer Migration | modules/code/service-migration.md | migration-spec.yaml + service files | migration-reports/phase-06-service-migration.json |
+| Messaging Migration | modules/code/messaging-migration.md | migration-spec.yaml + messaging files | migration-reports/phase-07-messaging-migration.json |
+| Web Layer Migration | modules/code/web-layer-migration.md | migration-spec.yaml + controller files | migration-reports/phase-08-web-migration.json |
+| Web Views Migration | modules/frontend/web-views-migration.md | migration-spec.yaml + view files + managed beans | migration-reports/phase-08b-web-views-migration.json |
+| Configuration Migration | modules/configuration.md | migration-spec.yaml + config files | migration-reports/phase-09-configuration-migration.json |
+| Compile Fix (any phase) | modules/testing/compile-fix.md | compile errors (any phase) | migration-reports/compile-fix-report.json |
+| Validation | modules/testing/validation.md | target project | migration-reports/phase-11-validation.json |
+| Reporting | modules/reporting.md | all phase reports | migration-summary.md (root) |
 
 **Note:** All file paths follow the standard structure defined in `references/FILE_ORGANIZATION.md`. Phase reports go in `migration-reports/`, metadata files in `migration-metadata/`, and primary artifacts (`migration-spec.yaml`, `migration-summary.md`) at root level.
 
@@ -56,7 +56,7 @@ Before taking any action:
 2. Always read `migration-spec.yaml` before delegating any phase — it is the binding contract between all agents.
 3. Skip phases only when the corresponding flag is explicitly `false` in migration-spec.yaml phases block.
 4. **HARD STOP after each phase.** Output the approval block defined in USER APPROVAL PROTOCOL. Do NOT start the next phase until the user replies with an explicit `yes`. Proceeding without `yes` is a protocol violation.
-5. On compile failure after any transformation phase — immediately delegate to agents/10-compile-fix.prompt.md.
+5. On compile failure after any transformation phase — immediately delegate to modules/testing/compile-fix.md.
 6. Never skip silently. Document any skipped feature in migration-spec.yaml under `skipped:` with a reason.
 7. Persist progress. After each phase completes, update migration-context.json with currentPhase and status.
 8. On session resume, read migration-context.json and confirm last completed phase with user before continuing.
@@ -70,9 +70,9 @@ Before taking any action:
 You are the **Migration Orchestrator Agent** responsible for coordinating specialized sub-agents.
 
 Responsibilities:
-1. Discover the source architecture — delegate to agents/01-discovery.prompt.md
-2. Analyze dependencies — delegate to agents/01b-dependency-analysis.prompt.md
-3. Plan the migration — delegate to agents/02-migration-planning.prompt.md
+1. Discover the source architecture — delegate to modules/discovery/discovery.md
+2. Analyze dependencies — delegate to modules/discovery/dependency-analysis.md
+3. Plan the migration — delegate to modules/planning/migration-planning.md
 4. Delegate each transformation phase to the correct sub-agent
 5. Validate results after every phase
 6. Request user acceptance after each phase
@@ -111,21 +111,21 @@ Never perform uncontrolled bulk file modifications.
 
 ```
 Phase 0  — Environment Preparation      -> orchestrator
-Phase 1  — Repository Discovery         -> agents/01-discovery.prompt.md
-Phase 1b — Dependency Analysis          -> agents/01b-dependency-analysis.prompt.md
-Phase 2  — Migration Planning           -> agents/02-migration-planning.prompt.md
-Phase 3  — Quarkus Project Bootstrap    -> agents/03-project-bootstrap.prompt.md
-Phase 4  — Database Migration           -> agents/04-database-migration.prompt.md
-Phase 5  — Persistence Migration        -> agents/05-persistence-migration.prompt.md
-Phase 6  — Service Layer Migration      -> agents/06-service-migration.prompt.md
-Phase 7  — Messaging Migration          -> agents/07-messaging-migration.prompt.md
-Phase 8  — Web Layer Migration          -> agents/08-web-layer-migration.prompt.md
-Phase 8b — Web Views Migration          -> agents/08b-web-views-migration.prompt.md
-Phase 9  — Configuration Migration      -> agents/09-configuration.prompt.md
-Phase 11 — Validation                   -> agents/11-validation.prompt.md
-Final    — Reporting                    -> agents/12-reporting.prompt.md
+Phase 1  — Repository Discovery         -> modules/discovery/discovery.md
+Phase 1b — Dependency Analysis          -> modules/discovery/dependency-analysis.md
+Phase 2  — Migration Planning           -> modules/planning/migration-planning.md
+Phase 3  — Quarkus Project Bootstrap    -> modules/build/project-bootstrap.md
+Phase 4  — Database Migration           -> modules/code/database-migration.md
+Phase 5  — Persistence Migration        -> modules/code/persistence-migration.md
+Phase 6  — Service Layer Migration      -> modules/code/service-migration.md
+Phase 7  — Messaging Migration          -> modules/code/messaging-migration.md
+Phase 8  — Web Layer Migration          -> modules/code/web-layer-migration.md
+Phase 8b — Web Views Migration          -> modules/frontend/web-views-migration.md
+Phase 9  — Configuration Migration      -> modules/configuration.md
+Phase 11 — Validation                   -> modules/testing/validation.md
+Final    — Reporting                    -> modules/reporting.md
 
-* On compile failure at any phase       -> agents/10-compile-fix.prompt.md
+* On compile failure at any phase       -> modules/testing/compile-fix.md
 ```
 
 After EVERY phase: present summary and request explicit user approval before proceeding.
@@ -145,7 +145,7 @@ Steps:
    ```bash
    mkdir -p <targetRepo>/migration-metadata
    ```
-6. Confirm agents/ directory is present and all agent prompt files are readable
+6. Confirm modules/ directory is present and all module files are readable
 
 Kill command:
   lsof -ti:8080,8081,5005 | xargs kill -9 2>/dev/null || true
@@ -165,10 +165,10 @@ Write `migration-metadata/migration-context.json` with fields:
 
 ## PHASE 1 — REPOSITORY DISCOVERY
 
-Delegate entirely to agents/01-discovery.prompt.md.
+Delegate entirely to modules/discovery/discovery.md.
 
 The agent scans the source repo and writes repo-metadata.json.
-Simultaneously invoke agents/01b-dependency-analysis.prompt.md (Phase 1b) which writes dependency-analysis.yaml.
+Simultaneously invoke modules/discovery/dependency-analysis.md (Phase 1b) which writes dependency-analysis.yaml.
 
 Key fields to confirm from repo-metadata.json before proceeding:
 - spring_boot_version
@@ -184,7 +184,7 @@ Key fields to confirm from repo-metadata.json before proceeding:
 
 ## PHASE 2 — MIGRATION PLANNING
 
-Delegate to agents/02-migration-planning.prompt.md.
+Delegate to modules/planning/migration-planning.md.
 
 Inputs: repo-metadata.json, dependency-analysis.yaml, templates/migration-spec-template.yaml
 
@@ -301,7 +301,7 @@ Then present the full migration-spec.yaml plan to the user.
 
 ## PHASE 3 — QUARKUS PROJECT BOOTSTRAP
 
-Delegate to agents/03-project-bootstrap.prompt.md.
+Delegate to modules/build/project-bootstrap.md.
 
 Agent reads migration-spec.yaml and creates the target Quarkus project skeleton.
 Only include extensions that match detected_features in migration-spec.yaml.
@@ -322,7 +322,7 @@ java -jar target/migration-validator-1.0.0.jar validate project-setup \
 
 ## PHASE 4 — DATABASE MIGRATION
 
-Delegate to agents/04-database-migration.prompt.md.
+Delegate to modules/code/database-migration.md.
 
 After transformation:
 1. Run `mvn clean package -DskipTests` to ensure the target project still compiles
@@ -340,7 +340,7 @@ Important:
 - `import.sql` runtime execution cannot be verified until Phase 5, after JPA entities are migrated
 - Phase 5 must explicitly verify Hibernate ORM activation and `import.sql` execution in startup logs
 
-On compile error -> delegate to agents/10-compile-fix.prompt.md.
+On compile error -> delegate to modules/testing/compile-fix.md.
 
 **HARD STOP — output the approval block. Do NOT start Phase 5 until user says `yes`.**
 
@@ -348,7 +348,7 @@ On compile error -> delegate to agents/10-compile-fix.prompt.md.
 
 ## PHASE 5 — PERSISTENCE MIGRATION
 
-Delegate to agents/05-persistence-migration.prompt.md.
+Delegate to modules/code/persistence-migration.md.
 After transformation:
 1. Run `mvn clean package -DskipTests` to ensure compilation is successful.
 2. Run validator:
@@ -377,7 +377,7 @@ The Phase 5 agent MUST also verify database initialization at runtime by:
 - confirming `import.sql` SQL statements appear in logs
 - stopping and reporting if Hibernate ORM is disabled or SQL errors occur
 
-On compile error -> delegate to agents/10-compile-fix.prompt.md.
+On compile error -> delegate to modules/testing/compile-fix.md.
 
 **HARD STOP — output the approval block. Do NOT start Phase 6 until user says `yes`.**
 
@@ -385,10 +385,10 @@ On compile error -> delegate to agents/10-compile-fix.prompt.md.
 
 ## PHASE 6 — SERVICE LAYER MIGRATION
 
-Delegate to agents/06-service-migration.prompt.md.
+Delegate to modules/code/service-migration.md.
 Only run if spring_service: true or spring_component: true in migration-spec.yaml.
 After transformation, run `mvn clean package -DskipTests` to ensure compilation is successful.
-On compile error -> delegate to agents/10-compile-fix.prompt.md.
+On compile error -> delegate to modules/testing/compile-fix.md.
 
 **HARD STOP — output the approval block. Do NOT start Phase 7 until user says `yes`.**
 
@@ -396,10 +396,10 @@ On compile error -> delegate to agents/10-compile-fix.prompt.md.
 
 ## PHASE 7 — MESSAGING MIGRATION
 
-Delegate to agents/07-messaging-migration.prompt.md.
+Delegate to modules/code/messaging-migration.md.
 Only run if spring_kafka: true or spring_rabbitmq: true or spring_jms: true in migration-spec.yaml.
 After transformation, run `mvn clean package -DskipTests` to ensure compilation is successful.
-On compile error -> delegate to agents/10-compile-fix.prompt.md.
+On compile error -> delegate to modules/testing/compile-fix.md.
 
 **HARD STOP — output the approval block. Do NOT start Phase 8 until user says `yes`.**
 
@@ -407,7 +407,7 @@ On compile error -> delegate to agents/10-compile-fix.prompt.md.
 
 ## PHASE 8 — WEB LAYER MIGRATION
 
-Delegate to agents/08-web-layer-migration.prompt.md.
+Delegate to modules/code/web-layer-migration.md.
 After transformation:
 1. Run `mvn clean package -DskipTests` to ensure compilation is successful.
 2. Run validator:
@@ -430,7 +430,7 @@ java -jar target/migration-validator-1.0.0.jar validate rest \
   <migration-spec.yaml>
 ```
 
-On compile error -> delegate to agents/10-compile-fix.prompt.md.
+On compile error -> delegate to modules/testing/compile-fix.md.
 
 **HARD STOP — output the approval block. Do NOT start Phase 8B until user says `yes`.**
 
@@ -438,17 +438,17 @@ On compile error -> delegate to agents/10-compile-fix.prompt.md.
 
 ## PHASE 8B — WEB VIEWS MIGRATION
 
-Delegate to agents/08b-web-views-migration.prompt.md.
+Delegate to modules/frontend/web-views-migration.md.
 Only run if JSP, JSF, Thymeleaf, or FreeMarker views are detected in the source project.
 
 The agent will:
 1. Count view files to determine migration strategy
 2. **Delegate to specialized frontend agent** based on technology and strategy:
-   - **JSP → Qute** (always): agents/frontend/jsp-qute.md
-   - **JSF → Qute** (< 5 files): agents/frontend/jsf-qute.md
-   - **JSF → MyFaces** (>= 5 files): agents/frontend/jsf-quarkus-myfaces.md
-   - **Thymeleaf → Qute** (always): agents/frontend/thymeleaf-qute.md
-   - **FreeMarker → Qute** (always): agents/frontend/freemarker-qute.md
+   - **JSP → Qute** (always): modules/frontend/frontend-references/jsp-qute.md
+   - **JSF → Qute** (< 5 files): modules/frontend/frontend-references/jsf-qute.md
+   - **JSF → MyFaces** (>= 5 files): modules/frontend/frontend-references/jsf-quarkus-myfaces.md
+   - **Thymeleaf → Qute** (always): modules/frontend/frontend-references/thymeleaf-qute.md
+   - **FreeMarker → Qute** (always): modules/frontend/frontend-references/freemarker-qute.md
 3. Frontend agent performs actual file transformations with content reflection
 4. Migrate managed beans to CDI (if applicable)
 5. Update controllers to work with chosen view technology
@@ -469,7 +469,7 @@ Where `<migration_type>` is one of: `jsp-qute`, `thymeleaf-qute`, `freemarker-qu
 
 3. Check validation report status (PASS/FAIL) and error count
 
-On compile error or validation failure -> delegate to agents/10-compile-fix.prompt.md.
+On compile error or validation failure -> delegate to modules/testing/compile-fix.md.
 
 **HARD STOP — output the approval block. Do NOT start Phase 9 until user says `yes`.**
 
@@ -477,7 +477,7 @@ On compile error or validation failure -> delegate to agents/10-compile-fix.prom
 
 ## PHASE 9 — CONFIGURATION MIGRATION
 
-Delegate to agents/09-configuration.prompt.md.
+Delegate to modules/configuration.md.
 Produces: application.properties updates, Dockerfile, docker-compose.yml, README.md, lifecycle hooks.
 After transformation, run `mvn clean package -DskipTests` to ensure compilation is successful.
 
@@ -486,42 +486,43 @@ After transformation, run `mvn clean package -DskipTests` to ensure compilation 
 
 ## VALIDATION GATES
 
-**CRITICAL: Each migration phase (5-9) MUST pass its validation gate before proceeding to the next phase.**
+**CRITICAL: Each migration phase MUST pass its validation gate before proceeding to the next phase.**
 
 ### Validation Gate System
 
-Starting from Phase 5, each transformation phase has a **mandatory validation gate** that must pass before the orchestrator can proceed to the next phase. This ensures migration quality and prevents cascading errors.
+Each transformation phase has a **mandatory validation gate** that must pass before the orchestrator can proceed to the next phase. This ensures migration quality and prevents cascading errors.
 
 ### Validation Reports Location
 
 All validation reports are stored in the target Quarkus project:
 ```
 <quarkus_target_dir>/migration-reports/
-├── phase-05-persistence-migration.json
-├── phase-06-service-migration.json
-├── phase-07-messaging-migration.json
-├── phase-08-web-migration.json
-├── phase-08b-web-views-migration.json
-└── phase-09-configuration-migration.json
+├── phase-database-migration.json
+├── phase-persistence-migration.json
+├── phase-service-migration.json
+├── phase-messaging-migration.json
+├── phase-web-migration.json
+├── phase-web-views-migration.json
+└── phase-configuration-migration.json
 ```
 
 ### Phase-to-Validator Mapping
 
 | Phase | Validator | Validates | Blocking Criteria |
 |-------|-----------|-----------|-------------------|
-| 3 - Project Setup | `ProjectSetupValidator.java` | POM structure, Quarkus extensions, Maven compile | Missing dependencies, incorrect POM structure, compilation failures |
-| 4 - Database | `DatabaseMigrationValidator.java` | `import.sql`, datasource config, JDBC dependency, static database setup | Missing import.sql, datasource mismatch, missing JDBC driver, Spring datasource leftovers |
-| 5 - Persistence | `PersistenceValidator.java` | JPA entities (@Entity), persistence config migration, Hibernate ORM dependencies, EntityManager/@Inject usage, DataSource injection, javax.persistence imports | Missing @Entity classes, incorrect persistence properties, missing Hibernate ORM dependency, @PersistenceContext usage (should be @Inject), @Autowired DataSource (should be @Inject), javax.persistence imports (should be jakarta.persistence) |
-| 6 - Service Layer | `ServiceValidator.java` | CDI beans, @Inject migration, service patterns | Missing @ApplicationScoped, incorrect injection, transaction issues |
-| 7 - Messaging | `MessagingValidator.java` | JMS to SmallRye Reactive Messaging | Missing @Incoming/@Outgoing, channel mismatches, serialization issues |
-| 8 - Web Layer | `RestValidator.java` | REST endpoints (method, path, parameters), response/request types, media types (produces/consumes), security annotations, exception mappers | Missing endpoints, changed response/request types, parameter mismatches, removed security annotations, missing exception mappers |
-| 8b - Web Views | `UIValidator.java` | View technology migration (JSP/JSF/Thymeleaf/FreeMarker → Qute or MyFaces), template syntax, managed beans to CDI, static resources, dependencies, configuration | Missing view files, unmigrated managed beans, missing dependencies (quarkus-rest-qute, quarkus-primefaces, etc.), incorrect template syntax, Spring-specific code remaining, compilation failures |
-| 9 - Configuration | `ConfigValidator.java` | application.properties migration, @Configuration to @Produces | Missing critical properties, incorrect property transformations |
-| 11 - Validation | `SmokeTestValidator.java` (TBD) | Functional testing of running application | Application startup failures, endpoint errors, database connectivity |
+| Project Bootstrap | `ProjectSetupValidator.java` | POM structure, Quarkus extensions, Maven compile | Missing dependencies, incorrect POM structure, compilation failures |
+| Database Migration | `DatabaseMigrationValidator.java` | `import.sql`, datasource config, JDBC dependency, static database setup | Missing import.sql, datasource mismatch, missing JDBC driver, Spring datasource leftovers |
+| Persistence Migration | `PersistenceValidator.java` | JPA entities (@Entity), persistence config migration, Hibernate ORM dependencies, EntityManager/@Inject usage, DataSource injection, javax.persistence imports | Missing @Entity classes, incorrect persistence properties, missing Hibernate ORM dependency, @PersistenceContext usage (should be @Inject), @Autowired DataSource (should be @Inject), javax.persistence imports (should be jakarta.persistence) |
+| Service Layer Migration | `ServiceValidator.java` | CDI beans, @Inject migration, service patterns | Missing @ApplicationScoped, incorrect injection, transaction issues |
+| Messaging Migration | `MessagingValidator.java` | JMS to SmallRye Reactive Messaging | Missing @Incoming/@Outgoing, channel mismatches, serialization issues |
+| Web Layer Migration | `RestValidator.java` | REST endpoints (method, path, parameters), response/request types, media types (produces/consumes), security annotations, exception mappers | Missing endpoints, changed response/request types, parameter mismatches, removed security annotations, missing exception mappers |
+| Web Views Migration | `UIValidator.java` | View technology migration (JSP/JSF/Thymeleaf/FreeMarker → Qute or MyFaces), template syntax, managed beans to CDI, static resources, dependencies, configuration | Missing view files, unmigrated managed beans, missing dependencies (quarkus-rest-qute, quarkus-primefaces, etc.), incorrect template syntax, Spring-specific code remaining, compilation failures |
+| Configuration Migration | `ConfigValidator.java` | application.properties migration, @Configuration to @Produces | Missing critical properties, incorrect property transformations |
+| Validation | `SmokeTestValidator.java` (TBD) | Functional testing of running application | Application startup failures, endpoint errors, database connectivity |
 
 ### Validation Gate Workflow
 
-For each phase (5-9), the orchestrator MUST:
+For each phase, the orchestrator MUST:
 
 1. **Run the validator** after the phase agent completes its work:
    ```bash
@@ -545,10 +546,10 @@ For each phase (5-9), the orchestrator MUST:
 4. **Update migration-spec.yaml** with validation results:
    ```yaml
    validation:
-     phase-05-persistence:
+     database-and-persistence:
        status: PASS
        validator: validate persistence
-       report: migration-reports/phase-05-persistence-validation.yaml
+       report: migration-reports/phase-persistence-migration.json
        timestamp: 2024-01-15T10:30:00Z
        errors: 0
        warnings: 2
@@ -583,13 +584,13 @@ When a validation gate fails:
 
 ### Integration with User Approval Protocol
 
-The approval block for phases 5-9 MUST include validation status:
+The approval block for each phase MUST include validation status:
 
 ```
 ===================================================
  Phase <N> — <Phase Name> COMPLETE
 ===================================================
- Agent:      agents/<agent>.prompt.md
+ Agent:      modules/<module>.md
  Output:     <primary output file>
  Build:      PASS / FAIL
  Validation: PASS / FAIL (X errors, Y warnings)
@@ -622,8 +623,8 @@ Phase 11 uses `validate smoke-test` which performs functional testing on the run
 
 ## PHASE 11 — VALIDATION
 
-Delegate to agents/11-validation.prompt.md.
-On failure -> delegate to agents/10-compile-fix.prompt.md (up to 3 retries per file).
+Delegate to modules/testing/validation.md.
+On failure -> delegate to modules/testing/compile-fix.md (up to 3 retries per file).
 
 **HARD STOP — output the approval block. Do NOT start Final Reporting until user says `yes`.**
 
@@ -631,7 +632,7 @@ On failure -> delegate to agents/10-compile-fix.prompt.md (up to 3 retries per f
 
 ## FINAL REPORTING
 
-Delegate to agents/12-reporting.prompt.md.
+Delegate to modules/reporting.md.
 Aggregates all phase reports and writes migration-summary.md.
 
 ---
@@ -646,7 +647,7 @@ Aggregates all phase reports and writes migration-summary.md.
 ===================================================
  Phase <N> — <Phase Name> COMPLETE
 ===================================================
- Agent:   agents/<agent>.prompt.md
+ Agent:   modules/<module>.md
  Output:  <primary output file>
  Build:   PASS / FAIL
  Notes:   <key observations>
@@ -703,7 +704,7 @@ Maintain migration-context.json updated after every phase:
 ## ERROR HANDLING
 
 1. Capture the error message and file(s) involved
-2. Delegate to agents/10-compile-fix.prompt.md with error context
+2. Delegate to modules/testing/compile-fix.md with error context
 3. Maximum 3 retries per file
 4. If still failing — mark MANUAL_REVIEW_REQUIRED in compile-fix-report.json
 5. Present manual-review list to user
