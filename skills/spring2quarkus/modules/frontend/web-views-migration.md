@@ -63,37 +63,37 @@ Apply in priority order — **user preference always wins over file count**:
 
 **JSP:**
 - `view_layer: qute` OR `auto`/`null` → **Migrate to Qute**
-- Delegate to `agents/frontend/jsp-qute.md`
+- Delegate to [jsp-qute.md](jsp-qute.md)
 
 **JSF:**
 - `view_layer: qute` → **Migrate to Qute** regardless of file count
-  - Delegate to `agents/frontend/jsf-qute.md`
+  - Delegate to [jsf-qute.md](jsf-qute.md)
 - `view_layer: myfaces` → **Maintain JSF with Quarkus MyFaces** regardless of file count
-  - Delegate to `agents/frontend/jsf-quarkus-myfaces.md`
+  - Delegate to [jsf-quarkus-myfaces.md](jsf-quarkus-myfaces.md)
 - `view_layer: auto` or `null`:
   - **If view files >= 5**: Maintain JSF using Quarkus MyFaces extension
-    - Delegate to `agents/frontend/jsf-quarkus-myfaces.md`
+    - Delegate to [jsf-quarkus-myfaces.md](jsf-quarkus-myfaces.md)
   - **If view files < 5**: Migrate to Qute templates
-    - Delegate to `agents/frontend/jsf-qute.md`
+    - Delegate to [jsf-qute.md](jsf-qute.md)
 
 **Thymeleaf:**
 - `view_layer: qute` OR `auto`/`null` → **Migrate to Qute** (no Quarkus Thymeleaf extension)
-- Delegate to `agents/frontend/thymeleaf-qute.md`
+- Delegate to [thymeleaf-qute.md](thymeleaf-qute.md)
 
 **FreeMarker:**
 - `view_layer: qute` OR `auto`/`null` → **Migrate to Qute**
-- Delegate to `agents/frontend/freemarker-qute.md`
+- Delegate to [freemarker-qute.md](freemarker-qute.md)
 
 ## Steps
 
 1. **Read `migration_strategy.view_layer`** from migration-spec.yaml
 2. **Count view files** (only when view_layer is `auto` or `null`)
 3. **Delegate to specialized frontend agent** based on resolved strategy:
-   - **JSP → Qute** (user: `qute`/`auto`/`null`): Read and execute `agents/frontend/jsp-qute.md`
-   - **JSF → Qute** (user: `qute`, or `auto`/`null` with < 5 files): Read and execute `agents/frontend/jsf-qute.md`
-   - **JSF → MyFaces** (user: `myfaces`, or `auto`/`null` with >= 5 files): Read and execute `agents/frontend/jsf-quarkus-myfaces.md`
-   - **Thymeleaf → Qute** (user: `qute`/`auto`/`null`): Read and execute `agents/frontend/thymeleaf-qute.md`
-   - **FreeMarker → Qute** (user: `qute`/`auto`/`null`): Read and execute `agents/frontend/freemarker-qute.md`
+   - **JSP → Qute** (user: `qute`/`auto`/`null`): Read and execute [jsp-qute.md](jsp-qute.md)
+   - **JSF → Qute** (user: `qute`, or `auto`/`null` with < 5 files): Read and execute [jsf-qute.md](jsf-qute.md)
+   - **JSF → MyFaces** (user: `myfaces`, or `auto`/`null` with >= 5 files): Read and execute [jsf-quarkus-myfaces.md](jsf-quarkus-myfaces.md)
+   - **Thymeleaf → Qute** (user: `qute`/`auto`/`null`): Read and execute [thymeleaf-qute.md](thymeleaf-qute.md)
+   - **FreeMarker → Qute** (user: `qute`/`auto`/`null`): Read and execute [freemarker-qute.md](freemarker-qute.md)
 4. **Frontend agent performs actual file transformations**:
    - Reads source view files with actual content
    - Applies syntax transformations per the frontend guide
