@@ -59,7 +59,7 @@ Read `migration_strategy.rest_framework` from the spec, then **continue in the a
 
 | Value | Continue with |
 |---|---|
-| `spring-web-compat` | [`08-web-layer-compat.prompt.md`](08-web-layer-compat.prompt.md) |
-| anything else (`quarkus-rest`, `resteasy-classic`) | [`08-web-layer-full-migration.prompt.md`](08-web-layer-full-migration.prompt.md) |
+| `spring-web-compat` | [`web-layer-compat.md`](web-layer-compat.md) |
+| anything else (`quarkus-rest`, `resteasy-classic`) | [`web-layer-full-migration.md`](web-layer-full-migration.md) |
 
 Each sub-file is self-contained from Step 1 onward.
