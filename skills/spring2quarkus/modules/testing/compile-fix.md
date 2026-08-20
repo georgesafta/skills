@@ -21,7 +21,9 @@ Automatically fix compilation errors introduced during migration.
 
 ## Steps
 
-1. Run `mvn clean package -DskipTests` and capture errors
+1. Run the project's compile command and capture errors:
+   - Maven: `mvn clean compile -DskipTests`
+   - Gradle: `./gradlew clean compileJava -x test`
 2. Parse error messages
 3. Identify error types:
    - Missing imports
@@ -30,24 +32,71 @@ Automatically fix compilation errors introduced during migration.
    - Method signature issues
 4. Apply automatic fixes
 5. Retry compilation (max 3 attempts per file)
-6. Flag unresolved issues for manual review
+6. If an error still fails after 3 attempts → emit the `MANUAL_REVIEW_REQUIRED` block (see below), then act according to mode:
+   - **`interactive`** — ask the user: *"I was unable to automatically fix `File.java`. Would you like me to continue fixing the remaining files, or stop here?"* Wait for the response before proceeding.
+   - **`autonomous`** — log the failure internally and continue automatically to the next file. Do **not** pause or ask. All failures will be surfaced in the final Migration Report.
 7. Generate compile-fix-report.json
 
-## Common Fixes
 
-### Missing Imports
+## Common Error Patterns
+
+### Missing or wrong import (`cannot find symbol`, `package does not exist`)
+
 ```java
-// Add missing imports
+// BEFORE: Spring / javax
+import javax.persistence.Entity;
+import javax.inject.Inject;
+import org.springframework.stereotype.Service;
+
+// AFTER: Quarkus / jakarta
+import jakarta.persistence.Entity;
 import jakarta.inject.Inject;
 import jakarta.enterprise.context.ApplicationScoped;
 ```
 
-### Incorrect Annotations
+### Incorrect or unknown annotation (`annotation type not applicable`)
+
 ```java
 // Fix annotation usage
 @PathParam("id") // instead of @PathVariable
 @QueryParam("name") // instead of @RequestParam
 ```
+
+### Type mismatch (`incompatible types`, `cannot convert`)
+
+Typically caused by return-type changes after repository migration:
+
+```java
+// BEFORE: Spring Data — returns Optional<T>
+Optional<Todo> result = repository.findById(id);
+
+// AFTER: Panache — findById returns T directly (null if not found)
+Todo result = Todo.findById(id);
+```
+
+### Method signature issue (`method not found`, `wrong number of arguments`)
+
+```java
+// BEFORE: Spring Data derived query
+List<Todo> findByCompleted(boolean completed);
+
+// AFTER: Panache
+List<Todo> findByCompleted(boolean completed) {
+    return list("completed", completed);
+}
+```
+
+## MANUAL_REVIEW_REQUIRED
+
+When a file cannot be fixed after 3 attempts, always emit:
+
+```
+MANUAL_REVIEW_REQUIRED: <relative/path/to/File.java>
+Reason: <paste the compiler error here>
+Attempted fixes: <brief description of what was tried>
+```
+
+Then act according to the current mode (see **step 6** above).
 
 ## Output
 
