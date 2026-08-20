@@ -1,7 +1,7 @@
 ---
 name: persistence-compat-agent
 description: Phase 5A Persistence Migration — Compat Mode. Keeps Spring Data JPA repository interfaces intact using quarkus-spring-data-jpa bridge.
-  Called from 05-persistence-migration.prompt.md when repository_layer = spring-data-compat.
+  Called from database-and-persistence-migration.md when repository_layer = spring-data-compat.
 license: Apache-2.0
 metadata:
   phase: 5
@@ -10,7 +10,7 @@ metadata:
 
 # Phase 5A — Persistence Migration: Compat Mode (spring-data-compat)
 
-> **Entry point:** This file is invoked by `05-persistence-migration.prompt.md` when
+> **Entry point:** This file is invoked by `database-and-persistence-migration.md` when
 > `migration_strategy.repository_layer = spring-data-compat`.
 > Entity migration rules and database schema mapping are in the entry-point file — read those first.
 
@@ -56,7 +56,7 @@ Read the `entities` list from `migration-spec.yaml`. For each entity file:
    ```
 
 3. Apply all `@Table` / `@Column` name-mapping rules from the **Database Schema Mapping** section
-   in `05-persistence-migration.prompt.md`.
+   in `database-and-persistence-migration.md`.
 
 4. Record the entity in the transformation ledger.
 

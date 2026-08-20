@@ -2,7 +2,7 @@
 name: persistence-full-migration-agent
 description: Phase 5B Persistence Migration — Full Migration. Converts Spring Data JPA repositories to Quarkus Hibernate ORM with Panache
   (panache-repository) or standard EntityManager (hibernate-orm-standard).
-  Called from 05-persistence-migration.prompt.md for any strategy other than spring-data-compat.
+  Called from database-and-persistence-migration.md for any strategy other than spring-data-compat.
 license: Apache-2.0
 metadata:
   phase: 5
@@ -11,7 +11,7 @@ metadata:
 
 # Phase 5B — Persistence Migration: Full Migration
 
-> **Entry point:** This file is invoked by `05-persistence-migration.prompt.md` when
+> **Entry point:** This file is invoked by `database-and-persistence-migration.md` when
 > `migration_strategy.repository_layer` is `panache-repository` or `hibernate-orm-standard`.
 > Entity migration rules and database schema mapping are in the entry-point file — read those first.
 
@@ -27,7 +27,7 @@ The choice is determined by `migration_strategy.repository_layer` in `migration-
 
 ## Step 1 — Migrate entities
 
-Apply entity migration rules from `05-persistence-migration.prompt.md`:
+Apply entity migration rules from `database-and-persistence-migration.md`:
 - Update `javax.persistence.*` → `jakarta.persistence.*`
 - Replace `@PersistenceContext` with `@Inject` on `EntityManager` fields
 - Apply all `@Table` / `@Column` name-mapping rules

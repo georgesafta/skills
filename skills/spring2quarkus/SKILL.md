@@ -35,8 +35,7 @@ Before taking any action:
 | Dependency Analysis | modules/discovery/dependency-analysis.md | pom.xml/build.gradle | migration-metadata/dependency-analysis.yaml |
 | Migration Planning | modules/planning/migration-planning.md | repo-metadata.json + dependency-analysis.yaml | migration-spec.yaml (root) |
 | Project Bootstrap | modules/build/project-bootstrap.md | migration-spec.yaml | pom.xml + migration-reports/phase-03-project-bootstrap.json |
-| Database Migration | modules/code/database-migration.md | migration-spec.yaml + source SQL/config files | migration-reports/phase-04-database-migration.json |
-| Persistence Migration | modules/code/persistence-migration.md | migration-spec.yaml + entity files | migration-reports/phase-05-persistence-migration.json |
+| Database & Persistence Migration | modules/code/database-and-persistence-migration.md | migration-spec.yaml + source SQL/config files + entity files | migration-reports/phase-04-database-migration.json, migration-reports/phase-05-persistence-migration.json |
 | Service Layer Migration | modules/code/service-migration.md | migration-spec.yaml + service files | migration-reports/phase-06-service-migration.json |
 | Messaging Migration | modules/code/messaging-migration.md | migration-spec.yaml + messaging files | migration-reports/phase-07-messaging-migration.json |
 | Web Layer Migration | modules/code/web-layer-migration.md | migration-spec.yaml + controller files | migration-reports/phase-08-web-migration.json |
@@ -115,8 +114,7 @@ Phase 1  — Repository Discovery         -> modules/discovery/discovery.md
 Phase 1b — Dependency Analysis          -> modules/discovery/dependency-analysis.md
 Phase 2  — Migration Planning           -> modules/planning/migration-planning.md
 Phase 3  — Quarkus Project Bootstrap    -> modules/build/project-bootstrap.md
-Phase 4  — Database Migration           -> modules/code/database-migration.md
-Phase 5  — Persistence Migration        -> modules/code/persistence-migration.md
+Phase 4+5 — Database & Persistence Migration -> modules/code/database-and-persistence-migration.md
 Phase 6  — Service Layer Migration      -> modules/code/service-migration.md
 Phase 7  — Messaging Migration          -> modules/code/messaging-migration.md
 Phase 8  — Web Layer Migration          -> modules/code/web-layer-migration.md
@@ -322,7 +320,7 @@ java -jar target/migration-validator-1.0.0.jar validate project-setup \
 
 ## PHASE 4 — DATABASE MIGRATION
 
-Delegate to modules/code/database-migration.md.
+Delegate to modules/code/database-and-persistence-migration.md (Phase 4 section).
 
 After transformation:
 1. Run `mvn clean package -DskipTests` to ensure the target project still compiles
@@ -348,7 +346,7 @@ On compile error -> delegate to modules/testing/compile-fix.md.
 
 ## PHASE 5 — PERSISTENCE MIGRATION
 
-Delegate to modules/code/persistence-migration.md.
+Delegate to modules/code/database-and-persistence-migration.md (Phase 5 section).
 After transformation:
 1. Run `mvn clean package -DskipTests` to ensure compilation is successful.
 2. Run validator:
