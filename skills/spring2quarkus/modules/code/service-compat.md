@@ -10,7 +10,7 @@ metadata:
 
 # Phase 6A — Service Layer Migration: Compat Mode (spring-di-compat)
 
-> **Entry point:** This file is invoked by `06-service-migration.prompt.md` when
+> **Entry point:** This file is invoked by `service-migration.md` when
 > `migration_strategy.service_layer = spring-di-compat`.
 > Output file location and inputs are defined in the entry-point file — read those first.
 
@@ -34,13 +34,23 @@ annotations do **NOT** need rewriting — copy them to the target unchanged:
 The work in this phase is **surgical**: copy every service file to the target and fix only the
 things in the "No" column above.
 
+**Additional compat behaviour to be aware of:**
+
+- **Custom stereotype annotations** — meta-annotations that extend `@Component`, `@Service`, or
+  `@Repository` (e.g., `@DomainService`) are auto-detected by `quarkus-spring-di`. Do **not**
+  rewrite them; they will be bridged without any changes.
+- **`List<T>` multi-bean injection** — `@Autowired List<MyService> services` injects all
+  matching beans and works unchanged in compat mode.
+- **`@Named`-only bean registration** — a class annotated solely with `@Named("name")` (no
+  `@Service`/`@Component`) becomes a `@Singleton` bean in compat mode; no changes needed.
+
 > **Minimum Quarkus version requirements:**
 > - `quarkus-spring-di` — available since **0.7.0**
 > - `quarkus-spring-scheduled` (optional, for keeping Spring `@Scheduled`) — requires **1.6.0**
 > - `quarkus-spring-tx` (optional, for keeping Spring `@Transactional` imports) — requires **3.37.0**
 >
 > If the target version in `migration-spec.yaml` is older than these minimums, flag the conflict to
-> the user and refer to `references/spring-compat-mode-support.md` for resolution options.
+> the user and refer to [spring-compat-mode-support.md](../../references/spring-compat-mode-support.md) for resolution options.
 
 ---
 

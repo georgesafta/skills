@@ -11,7 +11,7 @@ metadata:
 
 # Phase 6B — Service Layer Migration: Full Migration (application-scoped-cdi)
 
-> **Entry point:** This file is invoked by `06-service-migration.prompt.md` when
+> **Entry point:** This file is invoked by `service-migration.md` when
 > `migration_strategy.service_layer` is `application-scoped-cdi` (or any value other than
 > `spring-di-compat`).
 > Output file location and inputs are defined in the entry-point file — read those first.
@@ -157,6 +157,131 @@ import io.quarkus.scheduler.Scheduled;
 void updateCache() {}
 ```
 
+### 8. `@Qualifier` → `@Named`
+
+```java
+// Before
+@Autowired
+@Qualifier("premiumOrderService")
+private OrderService orderService;
+
+// After
+@Inject
+@Named("premiumOrderService")
+OrderService orderService;
+```
+
+For the bean declaration, add `@Named` alongside `@ApplicationScoped`:
+
+```java
+// Before
+@Service("premiumOrderService")
+public class PremiumOrderService implements OrderService { }
+
+// After
+import jakarta.inject.Named;
+
+@ApplicationScoped
+@Named("premiumOrderService")
+public class PremiumOrderService implements OrderService { }
+```
+
+### 9. `@Primary` → `@DefaultBean`
+
+```java
+// Before
+import org.springframework.context.annotation.Primary;
+
+@Service
+@Primary
+public class PreferredOrderService implements OrderService { }
+
+// After
+import io.quarkus.arc.DefaultBean;
+
+@ApplicationScoped
+@DefaultBean
+public class PreferredOrderService implements OrderService { }
+```
+
+Alternatively, use `@Alternative` + `@Priority` when you need explicit ordering among multiple
+candidates:
+
+```java
+import jakarta.annotation.Priority;
+import jakarta.enterprise.inject.Alternative;
+
+@ApplicationScoped
+@Alternative
+@Priority(1)
+public class PreferredOrderService implements OrderService { }
+```
+
+### 10. `@Lazy` — remove
+
+`@Lazy` has no CDI equivalent and must be removed. Quarkus beans are lazy by default — normal
+`@ApplicationScoped` beans are proxied and only instantiated on first use.
+
+```java
+// Before
+@Service
+@Lazy
+public class HeavyService { }
+
+// After — @Lazy removed; behaviour is equivalent
+@ApplicationScoped
+public class HeavyService { }
+```
+
+### 11. `@Conditional*` → `@IfBuildProfile` / `@LookupIfProperty`
+
+```java
+// Before
+@Service
+@ConditionalOnProperty(name = "feature.premium", havingValue = "true")
+public class PremiumFeatureService { }
+
+// After
+import io.quarkus.arc.profile.IfBuildProfile;
+
+@ApplicationScoped
+@IfBuildProfile("premium")
+public class PremiumFeatureService { }
+```
+
+For property-based conditions, use `@LookupIfProperty`:
+
+```java
+import io.quarkus.arc.lookup.LookupIfProperty;
+
+@ApplicationScoped
+@LookupIfProperty(name = "feature.premium", stringValue = "true")
+public class PremiumFeatureService { }
+```
+
+### 12. `@Scope` variants
+
+| Spring | Quarkus |
+|---|---|
+| `@Scope("singleton")` | `@Singleton` |
+| `@Scope("prototype")` | `@Dependent` |
+| `@Scope("request")` | `@RequestScoped` |
+| `@Scope("session")` | `@SessionScoped` |
+| `@Scope("application")` | `@ApplicationScoped` |
+
+```java
+// Before
+@Service
+@Scope("prototype")
+public class StatefulProcessor { }
+
+// After
+import jakarta.enterprise.context.Dependent;
+
+@Dependent
+public class StatefulProcessor { }
+```
+
 ---
 
 ## Import Reference
@@ -166,7 +291,13 @@ void updateCache() {}
 import org.springframework.stereotype.Service;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.ConditionalOnProperty;
+import org.springframework.context.annotation.Scope;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
@@ -176,7 +307,14 @@ import java.util.concurrent.CompletableFuture;
 **Add (as needed per file):**
 ```java
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.context.SessionScoped;
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import io.quarkus.arc.DefaultBean;
+import io.quarkus.arc.profile.IfBuildProfile;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.transaction.Transactional;

@@ -35,7 +35,7 @@ Convert Spring service layer components (`@Service`, `@Component`) to Quarkus CD
 
 ## Transformation Rules
 
-Apply RULE GROUP 4 from `transformation_rules.md`.
+Apply RULE GROUP 2 from `transformation_rules.md`.
 
 ---
 
@@ -45,7 +45,7 @@ Read `migration_strategy.service_layer` from the spec, then **continue in the ap
 
 | Value | Continue with |
 |-------|---------------|
-| `spring-di-compat` | [`06a-service-compat.prompt.md`](06a-service-compat.prompt.md) |
-| `application-scoped-cdi` (or any other value) | [`06b-service-full-migration.prompt.md`](06b-service-full-migration.prompt.md) |
+| `spring-di-compat` | [`service-compat.md`](service-compat.md) |
+| `application-scoped-cdi` (or any other value) | [`service-full-migration.md`](service-full-migration.md) |
 
 Each sub-file is self-contained from Step 1 onward.
