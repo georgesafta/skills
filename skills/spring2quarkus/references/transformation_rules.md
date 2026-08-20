@@ -27,11 +27,20 @@ This document provides a concise catalog of transformation rules. Each agent fil
 
 ## RULE GROUP 2 — ANNOTATION MIGRATION
 
-**RULE ANN-1:** @Service → @ApplicationScoped  
-**RULE ANN-2:** @Component → @ApplicationScoped  
-**RULE ANN-3:** @Repository → @ApplicationScoped  
-**RULE ANN-4:** @Autowired → @Inject  
+**RULE ANN-1:** @Service → @ApplicationScoped
+**RULE ANN-2:** @Component → @ApplicationScoped
+**RULE ANN-3:** @Repository → @ApplicationScoped
+**RULE ANN-4:** @Autowired → @Inject
 **RULE ANN-5:** @Value("${prop}") → @ConfigProperty(name = "prop")
+**RULE ANN-6:** @Qualifier("name") → @Named("name") (jakarta.inject.Named)
+**RULE ANN-7:** @Primary → @io.quarkus.arc.DefaultBean (or @Alternative + @Priority)
+**RULE ANN-8:** @Lazy → remove entirely (Quarkus beans are lazy by default)
+**RULE ANN-9:** @Conditional* → @IfBuildProfile or @LookupIfProperty
+**RULE ANN-10:** @Scope("singleton") → @Singleton
+**RULE ANN-11:** @Scope("prototype") → @Dependent
+**RULE ANN-12:** @Scope("request") → @RequestScoped
+**RULE ANN-13:** @Scope("session") → @SessionScoped
+**RULE ANN-14:** @Scope("application") → @ApplicationScoped
 
 ---
 
