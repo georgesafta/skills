@@ -202,7 +202,7 @@ target_technology:
 
 ## What each agent phase does differently in compat mode
 
-### Phase 5 — Persistence (`05-persistence-migration.prompt.md`)
+### Phase 5 — Persistence (`database-and-persistence-migration.md`)
 
 | Full migration | Compat mode (`spring-data-compat`) |
 |---|---|

@@ -143,32 +143,47 @@ public class OrderRepository {
 | `findByField(value)` | `find("field", value).list()` |
 | `findByFieldAndOther(v1, v2)` | `find("field = ?1 and other = ?2", v1, v2).list()` |
 | `findByFieldOrderByOther(value)` | `find("field", Sort.by("other"), value).list()` |
+| `findTopNByField(value)` / `findFirstNByField(value)` | `find("field", value).page(0, N).list()` |
+| `findDistinctByField(value)` | `find("SELECT DISTINCT e FROM Entity e WHERE e.field = ?1", value).list()` |
 | `countByField(value)` | `count("field", value)` |
 | `deleteByField(value)` | `delete("field", value)` |
 | `existsByField(value)` | `count("field", value) > 0` |
+| `findByField(value, Pageable)` | `find("field", value).page(Page.of(p.getPageNumber(), p.getPageSize())).list()` |
+| `findByField(value, Sort)` | `find("field", Sort.by(sort.getOrderFor("f").getProperty()), value).list()` |
+
+**`@Query` annotations:**
+- JPQL `@Query`: Keep the JPQL string as-is in a Panache `find()`/`list()` call. Change named parameters from `:name` to `?1`, `?2` positional style, or use `Parameters.with("name", value)`.
+- Native SQL `@Query(nativeQuery = true)`: Use `getEntityManager().createNativeQuery("...", EntityClass.class).getResultList()` — Panache does not wrap native queries.
+
+**Projection interfaces and `@Value` SPEL in Spring Data:**
+Panache does not support projection interfaces. Options:
+- Return the full entity and let the caller select fields (simplest).
+- Create a plain DTO record/class and use a constructor JPQL expression: `find("SELECT new com.example.MyDto(e.field1, e.field2) FROM Entity e WHERE ...")`.
 
 Record each repository in the transformation ledger.
 
 ---
 
-## Step 3 — Update `application.properties` with datasource config
+## Step 3 — Verify `application.properties` datasource config
+
+Phase 4 already converted all Spring datasource properties to Quarkus equivalents. Verify they
+are present and intact — do not re-convert from the Spring source:
 
 ```properties
-# Before (Spring)
-spring.datasource.url=jdbc:postgresql://localhost:5432/mydb
-spring.datasource.username=user
-spring.datasource.password=password
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
+quarkus.datasource.db-kind=<db-kind from Phase 4>
+quarkus.datasource.jdbc.url=<url from Phase 4>
+quarkus.datasource.username=<username from Phase 4>
+quarkus.datasource.password=<password from Phase 4>
 
-# After (Quarkus)
-quarkus.datasource.db-kind=postgresql
-quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/mydb
-quarkus.datasource.username=user
-quarkus.datasource.password=password
-quarkus.hibernate-orm.database.generation=update
+# These must reflect the Phase 4 profiled setup — do NOT flatten to a single unscoped value
+%dev.quarkus.hibernate-orm.database.generation=drop-and-create
+%prod.quarkus.hibernate-orm.database.generation=none
 quarkus.hibernate-orm.log.sql=true
 ```
+
+If any properties are missing, restore them from the Phase 4 migration report
+(`migration-reports/phase-04-database-migration.json`) rather than re-deriving from the
+Spring source (which has already been removed).
 
 ---
 
@@ -218,21 +233,20 @@ If you see "Hibernate ORM is disabled" instead, STOP and investigate:
 
 ### Step 5.3 — Verify `import.sql` execution
 
-With `quarkus.hibernate-orm.log.sql=true` enabled, you should see SQL statements in logs:
+With `quarkus.hibernate-orm.log.sql=true` enabled, you should see SQL statements in logs (table and entity names will match your actual project):
 ```
-Hibernate: CREATE TABLE IF NOT EXISTS owners (...)
-Hibernate: INSERT INTO vets VALUES (1, 'James', 'Carter')
-Hibernate: INSERT INTO vets VALUES (2, 'Helen', 'Leary')
+Hibernate: CREATE TABLE IF NOT EXISTS <your_table> (...)
+Hibernate: INSERT INTO <your_table> VALUES (...)
 ...
 ```
 
 ### Step 5.4 — Verify database content (optional)
 
-If using H2 console or database client, connect and verify:
+If using H2 console or database client, connect and verify. Replace the table names with actual table names from `import.sql`:
 ```sql
-SELECT COUNT(*) FROM owners;  -- Should return > 0
-SELECT COUNT(*) FROM vets;    -- Should return > 0
-SELECT * FROM pets LIMIT 5;   -- Should show sample data
+SELECT COUNT(*) FROM <your_primary_table>;    -- Should return > 0
+SELECT COUNT(*) FROM <your_secondary_table>;  -- Should return > 0
+SELECT * FROM <any_table> LIMIT 5;            -- Should show sample data
 ```
 
 ### Success criteria
@@ -269,7 +283,7 @@ SELECT * FROM pets LIMIT 5;   -- Should show sample data
 
 ### Automated verification (optional)
 
-Create this class to check database content programmatically at startup:
+Create this class to check database content programmatically at startup. **Replace `<YourEntity>` with 2–3 actual entity class names from the migrated project** (e.g. `Order`, `Customer`, `Product`).
 
 ```java
 package org.example.verification;
@@ -291,17 +305,16 @@ public class DatabaseVerifier {
 
     void onStart(@Observes StartupEvent ev) {
         try {
-            Long ownerCount = em.createQuery("SELECT COUNT(o) FROM Owner o", Long.class)
+            // Replace <YourEntity1> and <YourEntity2> with actual entity class names
+            Long count1 = em.createQuery("SELECT COUNT(e) FROM <YourEntity1> e", Long.class)
                 .getSingleResult();
-            Long vetCount = em.createQuery("SELECT COUNT(v) FROM Vet v", Long.class)
-                .getSingleResult();
-            Long petCount = em.createQuery("SELECT COUNT(p) FROM Pet p", Long.class)
+            Long count2 = em.createQuery("SELECT COUNT(e) FROM <YourEntity2> e", Long.class)
                 .getSingleResult();
 
-            LOG.infof("Database verification: %d owners, %d vets, %d pets",
-                ownerCount, vetCount, petCount);
+            LOG.infof("Database verification: %d <YourEntity1>, %d <YourEntity2>",
+                count1, count2);
 
-            if (ownerCount == 0 || vetCount == 0) {
+            if (count1 == 0 && count2 == 0) {
                 LOG.error("Database appears empty! import.sql may not have executed.");
             } else {
                 LOG.info("Database initialization verified successfully!");
@@ -313,7 +326,7 @@ public class DatabaseVerifier {
 }
 ```
 
-Place this in `src/main/java/org/example/verification/DatabaseVerifier.java`.
+Place this in `src/main/java/<your/package>/verification/DatabaseVerifier.java`.
 
 ---
 

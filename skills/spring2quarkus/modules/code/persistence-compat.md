@@ -76,6 +76,8 @@ Read the `repositories` list from `migration-spec.yaml`. For each repository fil
 
 ## Step 3 — Fix `@Transactional` imports in entity and repository files
 
+> **Scan first:** Search entity and repository files for `org.springframework.transaction.annotation.Transactional`. If no occurrences are found, skip this step entirely.
+
 Spring's `org.springframework.transaction.annotation.Transactional` is **not** bridged by
 `quarkus-spring-data-jpa`. Choose one option:
 
@@ -120,23 +122,32 @@ Add it if missing.
 
 ---
 
-## Step 5 — Configure datasource in `application.properties`
+## Step 5 — Verify datasource in `application.properties`
 
-Ensure the Quarkus datasource properties are present:
+Phase 4 already configured the datasource and Hibernate ORM properties. Verify they are present
+and have not been lost or overwritten:
 
 ```properties
-quarkus.datasource.db-kind=postgresql
-quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/mydb
-quarkus.datasource.username=user
-quarkus.datasource.password=password
-quarkus.hibernate-orm.database.generation=update
+quarkus.datasource.db-kind=<db-kind from Phase 4>
+quarkus.datasource.jdbc.url=<url from Phase 4>
+quarkus.datasource.username=<username from Phase 4>
+quarkus.datasource.password=<password from Phase 4>
+
+# These must reflect the Phase 4 profiled setup — do NOT flatten to a single unscoped value
+%dev.quarkus.hibernate-orm.database.generation=drop-and-create
+%prod.quarkus.hibernate-orm.database.generation=none
 quarkus.hibernate-orm.log.sql=true
 ```
+
+If any of these are missing, re-apply the values from Phase 4 rather than re-deriving them from
+the Spring source.
 
 ---
 
 ## Step 6 — Handle `*RepositoryImpl` classes (repository fragments)
 
+> **Skip this step entirely** if Step 2 found no `*RepositoryImpl` classes alongside any repository interface. Proceed directly to Step 7.
+>
 > Applies only to repositories flagged in Step 2 as having a `*RepositoryImpl` class.
 
 `quarkus-spring-data-jpa` has **limited** support for the classic Spring pattern of a
@@ -227,7 +238,7 @@ Start the application with `mvn quarkus:dev` and confirm:
 - `import.sql` statements appear in logs
 - No SQL errors at startup
 
-See the **Step 5 — Verify database initialization** section in `05b-persistence-full-migration.prompt.md`
+See the **Step 5 — Verify database initialization** section in `persistence-full-migration.md`
 for the full verification procedure, success criteria, troubleshooting steps, and the optional
 `DatabaseVerifier` class — the process is identical in both paths.
 

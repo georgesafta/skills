@@ -37,10 +37,13 @@ This document provides a concise catalog of transformation rules. Each agent fil
 
 ## RULE GROUP 3 — PERSISTENCE MIGRATION
 
-**RULE JPA-1:** Update imports: javax.persistence.* → jakarta.persistence.*  
-**RULE JPA-2:** JpaRepository interface → PanacheRepository class  
-**RULE JPA-3:** Spring @Transactional → Jakarta @Transactional  
-**RULE JPA-4:** @PersistenceContext → @Inject EntityManager
+**RULE JPA-1:** Update imports: javax.persistence.* → jakarta.persistence.* *(Spring Boot 2.x only — skip if already Jakarta)*
+**RULE JPA-2:** Repository migration depends on `migration_strategy.repository_layer`:
+  - `panache-repository` → rewrite `JpaRepository` interface to `PanacheRepository` class
+  - `hibernate-orm-standard` → rewrite to `@ApplicationScoped` bean with injected `EntityManager`
+  - `spring-data-compat` → keep `JpaRepository` interface as-is; no rewrite needed
+**RULE JPA-3:** Spring `@Transactional` import → Jakarta `@Transactional` *(scan first; skip if not present. For compat mode, `quarkus-spring-tx` is an alternative — see `references/spring-compat-mode-support.md`)*
+**RULE JPA-4:** @PersistenceContext → @Inject EntityManager *(scan first; skip if not present)*
 
 ---
 

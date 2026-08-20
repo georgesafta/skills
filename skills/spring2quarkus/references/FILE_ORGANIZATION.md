@@ -106,7 +106,7 @@ Standard Quarkus project structure (created by Phase 3 and subsequent phases):
 - **pom.xml** - Maven configuration (Phase 3)
 - **src/main/java/** - Application code (Phases 5-8)
 - **src/main/resources/application.properties** - Configuration (Phase 9)
-- **src/main/resources/import.sql** - Database initialization (Phase 4, if applicable)
+- **src/main/resources/import.sql** - Database initialization (Phase 4, if applicable — omitted when app uses Flyway, Liquibase, or DDL-auto only)
 - **src/test/** - Test code (migrated by various phases)
 
 **Note**: Additional files like Dockerfile, docker-compose.yml, README.md may be created by Phase 9 (Configuration) depending on the migration spec.

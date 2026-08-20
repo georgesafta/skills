@@ -20,6 +20,56 @@ metadata:
 
 Migrate database initialization files (schema.sql, data.sql) from Spring Boot to Quarkus and configure the datasource based on the database type chosen in Phase 2 (Migration Planning).
 
+## ⚠️ Pre-flight: Detect the database initialization approach
+
+Before executing any steps below, inspect the source project to determine which initialization approach it uses. The rest of Phase 4 differs significantly depending on the answer.
+
+### Check 1 — Does the app use Flyway or Liquibase?
+
+Scan `pom.xml` for `flyway-core`, `spring-flyway`, `liquibase-core`, or `spring-liquibase`. Also check `application.yml/properties` for `spring.flyway.*` or `spring.liquibase.*` keys.
+
+**If yes → do NOT use the `import.sql` approach.** Instead:
+1. Keep your existing migration files (e.g. `db/migration/V1__*.sql` for Flyway, `db/changelog/` for Liquibase) — they do not need to change.
+2. Replace the Spring dependency in `pom.xml`:
+   - Flyway: `flyway-core` → `quarkus-flyway`
+   - Liquibase: `liquibase-core` → `quarkus-liquibase`
+3. Remap the few configuration properties:
+
+   | Spring Property | Quarkus Property |
+   |----------------|-----------------|
+   | `spring.flyway.locations` | `quarkus.flyway.locations` |
+   | `spring.flyway.baseline-on-migrate` | `quarkus.flyway.baseline-on-migrate` |
+   | `spring.flyway.enabled` | `quarkus.flyway.enabled` |
+   | `spring.liquibase.change-log` | `quarkus.liquibase.change-log` |
+   | `spring.liquibase.enabled` | `quarkus.liquibase.enabled` |
+
+4. Skip Steps 1–3 (SQL file migration) below entirely.
+5. Proceed directly to **Step 4** (datasource config) and **Step 6** (JDBC driver dependency), then run the validator.
+
+**If no → continue with Step 1 below.**
+
+---
+
+### Check 2 — Does the app have any SQL initialization files?
+
+After confirming no Flyway/Liquibase, scan for any of the following files:
+```
+src/main/resources/schema.sql
+src/main/resources/data.sql
+src/main/resources/schema-*.sql
+src/main/resources/data-*.sql
+src/main/resources/import.sql
+```
+
+**If none found:** the app relies solely on `spring.jpa.hibernate.ddl-auto` (or equivalent) for schema management. In this case:
+- Skip Steps 1–3 (no SQL files to migrate, no `import.sql` to create).
+- Proceed directly to **Step 4** (datasource config) and **Step 6** (JDBC driver dependency).
+- Schema will be generated from JPA entities in Phase 5 via `quarkus.hibernate-orm.database.generation`.
+
+**If files found → continue with Steps 1–3 below.**
+
+---
+
 ## ⚠️ CRITICAL: Output File Location
 
 **YOU MUST save the Phase 4 migration report to this exact location:**
@@ -65,6 +115,8 @@ src/main/resources/schema-postgresql.sql
 src/main/resources/import.sql (if already exists)
 ```
 
+> **Skip this step** if the pre-flight check above determined there are no SQL initialization files.
+
 ## Step 2: Read Database Type from Migration Spec
 
 ```yaml
@@ -77,6 +129,8 @@ database:
 ```
 
 ## Step 3: Combine SQL Files into import.sql
+
+> **Skip this step** if the pre-flight check above determined there are no SQL initialization files.
 
 Merge all schema and data files into a single `import.sql`:
 
@@ -111,6 +165,15 @@ INSERT INTO users (id, username, email) VALUES (2, 'user', 'user@example.com');
 - Preserve comments from source files
 - Ensure foreign key constraints are in correct order
 
+### Multi-environment SQL files
+
+Some Spring Boot projects ship separate SQL files for different environments — for example, `schema-h2.sql` for tests and `schema-postgresql.sql` for production.
+
+**Do not discard the non-primary files.** Instead:
+- Place the primary database's SQL in `src/main/resources/import.sql` (used at runtime).
+- Place the test database's SQL in `src/test/resources/import.sql` (used by Quarkus test profile automatically).
+- If three or more environments exist, discuss with the user which is the primary target before discarding others.
+
 ## Step 4: Migrate Datasource Configuration
 
 ### Spring Boot → Quarkus Property Mapping
@@ -123,9 +186,17 @@ INSERT INTO users (id, username, email) VALUES (2, 'user', 'user@example.com');
 | `spring.datasource.driver-class-name` | `quarkus.datasource.jdbc.driver` | Usually auto-detected |
 | `spring.datasource.hikari.maximum-pool-size` | `quarkus.datasource.jdbc.max-size` | Connection pool |
 | `spring.datasource.hikari.minimum-idle` | `quarkus.datasource.jdbc.min-size` | Connection pool |
+| `spring.datasource.hikari.connection-timeout` | `quarkus.datasource.jdbc.acquisition-timeout` | Connection pool |
+| `spring.datasource.type` | (remove) | Quarkus uses Agroal; pool type not configurable |
+| `spring.datasource.jndi-name` | `quarkus.datasource.jdbc.url=java:comp/env/...` | JNDI lookup; migrate to explicit URL if possible |
 | `spring.jpa.hibernate.ddl-auto` | (remove) | Use import.sql instead |
+| `spring.jpa.show-sql` | `quarkus.hibernate-orm.log.sql` | Direct mapping |
+| `spring.jpa.properties.*` | `quarkus.hibernate-orm.*` | Pass-through Hibernate properties; map key-by-key |
 | `spring.sql.init.mode` | (remove) | import.sql auto-runs |
 | `spring.sql.init.schema-locations` | (remove) | import.sql auto-runs |
+| `spring.sql.init.data-locations` | (remove) | import.sql auto-runs |
+
+> **Profile-specific overrides:** Spring Boot uses separate `application-{profile}.yml` files. Quarkus uses property prefixes (`%dev.`, `%prod.`, `%test.`). For each profile-specific datasource override found (e.g. a different URL in `application-prod.yml`), convert it to the corresponding `%prod.quarkus.datasource.*` property in `application.properties`.
 
 ### CRITICAL: Hibernate ORM Configuration for import.sql Execution
 
@@ -169,15 +240,21 @@ quarkus.hibernate-orm.log.sql=true
 
 ### Database-Specific Configuration
 
-**H2 Database:**
+**H2 Database — file-based (persistent):**
 ```properties
 quarkus.datasource.db-kind=h2
 quarkus.datasource.jdbc.url=jdbc:h2:file:./data/testdb;DB_CLOSE_DELAY=-1
 quarkus.datasource.username=sa
 quarkus.datasource.password=
+%dev.quarkus.hibernate-orm.database.generation=drop-and-create
+```
 
-# Optional: H2 console for development
-quarkus.datasource.jdbc.url=jdbc:h2:mem:testdb
+**H2 Database — in-memory (dev/test only):**
+```properties
+quarkus.datasource.db-kind=h2
+%dev.quarkus.datasource.jdbc.url=jdbc:h2:mem:testdb
+quarkus.datasource.username=sa
+quarkus.datasource.password=
 %dev.quarkus.hibernate-orm.database.generation=drop-and-create
 ```
 
@@ -196,12 +273,9 @@ quarkus.datasource.jdbc.min-size=5
 **MySQL:**
 ```properties
 quarkus.datasource.db-kind=mysql
-quarkus.datasource.jdbc.url=jdbc:mysql://localhost:3306/mydb
+quarkus.datasource.jdbc.url=jdbc:mysql://localhost:3306/mydb?useSSL=false&serverTimezone=UTC
 quarkus.datasource.username=root
 quarkus.datasource.password=root
-
-# MySQL specific
-quarkus.datasource.jdbc.url=jdbc:mysql://localhost:3306/mydb?useSSL=false&serverTimezone=UTC
 ```
 
 **MariaDB:**
@@ -430,11 +504,12 @@ java -jar target/migration-validator-1.0.0.jar validate database \
 
 ## Phase 4 Success Criteria
 
-- [ ] import.sql created with combined schema and data
+- [ ] import.sql created with all migrated SQL content (schema, data, or both as applicable) — or skipped if app uses Flyway/Liquibase/DDL-auto only
 - [ ] Datasource configuration migrated to application.properties
 - [ ] Correct JDBC driver dependency added
 - [ ] SQL syntax adjusted for target database
 - [ ] No Spring datasource properties remain
+- [ ] Profile-specific datasource overrides converted to `%prod.`/`%dev.` Quarkus prefixes
 - [ ] Database migration report generated
 - [ ] **Validator passes all checks (exit code 0)**
 
@@ -475,27 +550,42 @@ Apply RULE GROUP 3 from `transformation_rules.md`.
 
 ---
 
+## ⚠️ Pre-flight: Detect whether Phase 5 applies
+
+Before executing any steps, check whether the source project uses JPA at all.
+
+Scan `pom.xml` for `spring-boot-starter-data-jpa`, `jakarta.persistence`, or `javax.persistence`. Also scan the source Java files for any class annotated `@Entity`.
+
+**If no JPA found:** the app uses a non-JPA data access layer (e.g. `JdbcTemplate`, MyBatis, JOOQ, or plain JDBC). Phase 5 does not apply.
+- Record this in the migration report with `"strategy": "no-jpa-skipped"`.
+- Proceed directly to Phase 6.
+
+**If JPA found → continue with the steps below.**
+
+---
+
 ## Shared: Entity Migration Rules
 
 These rules apply to **both** migration paths.
 
 ### Entity Migration
 
-Entities require minimal changes:
-1. Update imports: `javax.persistence.*` → `jakarta.persistence.*`
-2. Keep all JPA annotations unchanged
-3. Update `@PersistenceContext` → `@Inject` for EntityManager
-4. **CRITICAL: Ensure proper table and column name mappings**
+For each entity, apply these changes **only where they are actually needed** — check each condition before acting:
+
+1. **`javax.persistence.*` → `jakarta.persistence.*`:** Only applies to Spring Boot 2.x projects. Spring Boot 3.x already uses `jakarta.persistence.*` — if imports are already Jakarta, skip this step. Do not report it as a change made.
+2. **Keep all other JPA annotations unchanged.**
+3. **`@PersistenceContext` → `@Inject` on `EntityManager`:** Scan the entity and its companion classes first. If `@PersistenceContext` is not present, skip this rule entirely.
+4. **CRITICAL: Verify (and add if missing) `@Table` and `@Column` name mappings** — see Database Schema Mapping section below.
 
 ### Database Schema Mapping (CRITICAL)
 
-**⚠️ MANDATORY: All entities MUST have explicit table and column mappings to match `import.sql`**
+**⚠️ MANDATORY: Verify that all entities have table and column mappings that match `import.sql`**
 
-When migrating entities, you MUST ensure that JPA annotations match the database schema used in `import.sql`.
+When migrating entities, confirm that JPA annotations match the database schema used in `import.sql`. Many well-maintained Spring Boot apps already have explicit `@Table` and `@Column` annotations — in that case, your job is to verify they are correct, not to add them from scratch.
 
 #### Table Name Mapping
 
-**Rule:** If the table name in `import.sql` uses snake_case or differs from the entity class name, you MUST add `@Table` annotation.
+**Rule:** If the table name in `import.sql` uses snake_case or differs from the entity class name, and no `@Table` annotation is already present, add one. If `@Table` is already present, verify that `name` matches `import.sql` exactly.
 
 ```java
 // import.sql uses: INSERT INTO application_settings ...
@@ -513,7 +603,7 @@ public class CarrierMovement { }
 
 #### Column Name Mapping
 
-**Rule:** Column names in `@Column` annotations MUST EXACTLY match the column names used in `import.sql` — including case.
+**Rule:** For each field whose column name in `import.sql` differs from the Java field name (e.g. snake_case vs camelCase), a `@Column(name = "...")` annotation must be present and must EXACTLY match the column name in `import.sql` — including case. If the annotation already exists, verify it; if absent, add it.
 
 **⚠️ CRITICAL: The column name in `@Column` MUST be character-for-character identical to `import.sql`**
 
