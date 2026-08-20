@@ -62,7 +62,7 @@ Create the Quarkus project structure with appropriate extensions based on migrat
    - src/test/java/
    - src/test/resources/
 6. Generate project-bootstrap-report.json
-7. Run `mvn clean package -DskipTests` to verify setup and ensure compilation is successful
+7. Run `mvn clean compile` to verify setup and ensure compilation is successful (no application source exists yet at this phase — compile is sufficient)
 8. **Run validator and fix errors iteratively (CRITICAL):**
    ```bash
    # Build validator if needed
@@ -133,6 +133,15 @@ Create the Quarkus project structure with appropriate extensions based on migrat
         <groupId>io.quarkus</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
         <version>${quarkus.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+              <goal>generate-code</goal>
+              <goal>generate-code-tests</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
@@ -148,14 +157,15 @@ quarkus.application.name=<!-- from migration-spec -->
 # HTTP
 quarkus.http.port=8080
 
-# Database (placeholder - will be populated in Phase 5)
-# quarkus.datasource.db-kind=postgresql
-# quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/mydb
-# quarkus.datasource.username=user
-# quarkus.datasource.password=password
+# Database (placeholder - will be fully populated in Phase 4)
+# quarkus.datasource.db-kind=<!-- h2 | postgresql | mysql | mariadb — from migration-spec.yaml -->
+# quarkus.datasource.jdbc.url=<!-- from migration-spec.yaml -->
+# quarkus.datasource.username=<!-- from migration-spec.yaml -->
+# quarkus.datasource.password=<!-- from migration-spec.yaml -->
 
-# Hibernate ORM (placeholder - will be populated in Phase 5)
-# quarkus.hibernate-orm.database.generation=update
+# Hibernate ORM (placeholder - will be fully populated in Phase 4)
+# %dev.quarkus.hibernate-orm.database.generation=drop-and-create
+# %prod.quarkus.hibernate-orm.database.generation=none
 
 # Messaging (placeholder - will be populated in Phase 7)
 # kafka.bootstrap.servers=localhost:9092

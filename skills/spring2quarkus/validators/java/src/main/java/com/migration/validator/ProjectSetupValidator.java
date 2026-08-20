@@ -117,10 +117,14 @@ public class ProjectSetupValidator {
     }
 
     private void checkNoSpringBootFiles(ValidationReport report) {
-        System.out.println("[RULE] No Spring Boot files (@SpringBootApplication) exist in target project");
+        System.out.println("[RULE] No Spring Boot annotations (@SpringBootApplication, @EnableAutoConfiguration, @SpringBootTest) exist in target project");
         try {
             List<String> springBootFiles = new ArrayList<>();
             Set<String> excludedDirs = Set.of("target", ".m2", ".git");
+            Set<String> springBootAnnotations = Set.of(
+                    "@SpringBootApplication",
+                    "@EnableAutoConfiguration",
+                    "@SpringBootTest");
 
             Files.walk(projectRoot)
                     .filter(p -> p.toString().endsWith(".java"))
@@ -135,8 +139,11 @@ public class ProjectSetupValidator {
                     .forEach(p -> {
                         try {
                             String content = Files.readString(p);
-                            if (content.contains("@SpringBootApplication")) {
-                                springBootFiles.add(projectRoot.relativize(p).toString());
+                            for (String annotation : springBootAnnotations) {
+                                if (content.contains(annotation)) {
+                                    springBootFiles.add(projectRoot.relativize(p).toString() + " (" + annotation + ")");
+                                    break;
+                                }
                             }
                         } catch (IOException e) {
                             // Skip files that can't be read
@@ -144,12 +151,12 @@ public class ProjectSetupValidator {
                     });
 
             if (springBootFiles.isEmpty()) {
-                report.pass("No Spring Boot files", "No Spring Boot files or dependencies found");
-                System.out.println("  ✓ No Spring Boot files or dependencies found\n");
+                report.pass("No Spring Boot files", "No Spring Boot annotations found");
+                System.out.println("  ✓ No Spring Boot annotations found\n");
             } else {
                 String sample = String.join("; ", springBootFiles.subList(0, Math.min(3, springBootFiles.size())));
                 String extra = springBootFiles.size() > 3 ? " (and " + (springBootFiles.size() - 3) + " more)" : "";
-                String evidence = "Spring Boot artifacts found: " + sample + extra;
+                String evidence = "Spring Boot annotations found: " + sample + extra;
                 report.fail("No Spring Boot files", evidence);
                 System.out.println("  ✗ " + evidence + "\n");
             }
@@ -495,9 +502,25 @@ public class ProjectSetupValidator {
             pb.redirectErrorStream(true);
 
             Process process = pb.start();
-            String output = new String(process.getInputStream().readAllBytes());
-            int exitCode = process.waitFor();
+            StringBuilder outputBuilder = new StringBuilder();
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    outputBuilder.append(line).append("\n");
+                }
+            }
 
+            boolean finished = process.waitFor(180, java.util.concurrent.TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                report.fail("mvn compile", "Maven compile timed out after 180 seconds");
+                System.out.println("  ✗ Maven compile timed out after 180 seconds\n");
+                return;
+            }
+
+            int exitCode = process.exitValue();
+            String output = outputBuilder.toString();
             boolean success = exitCode == 0 && output.toUpperCase().contains("BUILD SUCCESS");
 
             if (success) {
