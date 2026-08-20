@@ -410,8 +410,8 @@ quarkus.datasource.password=
 ## Phase 4 Validation Points
 
 After migration, verify:
-1. ✅ import.sql exists in src/main/resources
-2. ✅ import.sql contains both schema and data
+1. ✅ import.sql exists in src/main/resources (or Flyway/Liquibase files preserved — as applicable)
+2. ✅ import.sql contains all migrated SQL content (schema, data, or both as applicable to this app)
 3. ✅ SQL syntax is compatible with target database
 4. ✅ Datasource configuration is complete
 5. ✅ Correct JDBC driver dependency is present
@@ -606,6 +606,8 @@ public class CarrierMovement { }
 **Rule:** For each field whose column name in `import.sql` differs from the Java field name (e.g. snake_case vs camelCase), a `@Column(name = "...")` annotation must be present and must EXACTLY match the column name in `import.sql` — including case. If the annotation already exists, verify it; if absent, add it.
 
 **⚠️ CRITICAL: The column name in `@Column` MUST be character-for-character identical to `import.sql`**
+
+> **Validator limitation:** The PersistenceValidator normalises column names to uppercase before comparing. It will **not** catch a case mismatch — for example, `@Column(name = "SAMPLE_LOADED")` and `@Column(name = "sample_loaded")` will both pass validation even if `import.sql` uses lowercase. **Verify column name casing manually** by cross-checking `@Column(name = "...")` against the exact column names in `import.sql` before running the validator.
 
 ```java
 // import.sql uses: INSERT INTO application_settings (id, sample_loaded) VALUES ...

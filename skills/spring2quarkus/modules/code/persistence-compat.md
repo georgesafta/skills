@@ -28,22 +28,21 @@ their `JpaRepository<E, ID>` declaration — no rewrite to Panache is needed.
 
 ## Step 1 — Migrate entities
 
-Read the `entities` list from `migration-spec.yaml`. For each entity file:
+Read the `entities` list from `migration-spec.yaml`. For each entity file, apply only what is needed:
 
-1. Update all `javax.persistence.*` imports to `jakarta.persistence.*`.
-   This is **always required** — `quarkus-spring-data-jpa` does **not** bridge old `javax` imports.
+1. **`javax.persistence.*` → `jakarta.persistence.*`:** Check whether imports are already `jakarta.*` (Spring Boot 3.x projects). If already Jakarta, skip — `quarkus-spring-data-jpa` does **not** bridge old `javax` imports, so this step is mandatory for Spring Boot 2.x.
 
    ```java
-   // Before
+   // Spring Boot 2.x — Before
    import javax.persistence.Entity;
    import javax.persistence.Table;
 
-   // After
+   // After (or already present in Spring Boot 3.x)
    import jakarta.persistence.Entity;
    import jakarta.persistence.Table;
    ```
 
-2. Replace any `@PersistenceContext EntityManager` with `@Inject EntityManager` (JPA-4 rule):
+2. **`@PersistenceContext` → `@Inject EntityManager`:** Scan the entity first. If `@PersistenceContext` is not present, skip this rule.
 
    ```java
    // Before

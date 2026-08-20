@@ -27,11 +27,11 @@ The choice is determined by `migration_strategy.repository_layer` in `migration-
 
 ## Step 1 — Migrate entities
 
-Apply entity migration rules from `database-and-persistence-migration.md`:
-- Update `javax.persistence.*` → `jakarta.persistence.*`
-- Replace `@PersistenceContext` with `@Inject` on `EntityManager` fields
-- Apply all `@Table` / `@Column` name-mapping rules
-- Record each entity in the transformation ledger
+Apply the entity migration rules from `database-and-persistence-migration.md` — only where each condition is met:
+- **`javax.persistence.*` → `jakarta.persistence.*`:** Only if the project is Spring Boot 2.x. Skip if imports are already `jakarta.*`.
+- **`@PersistenceContext` → `@Inject` on `EntityManager`:** Only if `@PersistenceContext` is present. Skip if not found.
+- **Verify `@Table` / `@Column` name mappings** against `import.sql` — add where missing, verify where present.
+- Record each entity in the transformation ledger.
 
 ---
 
@@ -381,7 +381,10 @@ java -jar target/migration-validator-1.0.0.jar validate persistence \
   4. Repeat until exit code = 0 and Status = SUCCESS
 - Only proceed to next phase when: `Rules: X total | X passed | 0 failed`
 
-**Validator checks:** Entity coverage, repository coverage, `@ApplicationScoped` on repos,
-Panache patterns (if used), `import.sql` runtime execution
+**Validator checks:** Entity coverage (count + per-entity structure), repository count matches Spring source, `quarkus-spring-data-jpa` present (compat mode), `mvn compile` succeeds
+
+> **Note — not checked by the validator:**
+> - `@ApplicationScoped` on Panache repos and Panache query patterns — verify manually by code review
+> - `import.sql` runtime execution — this is a manual step (start the app, confirm SQL statements appear in logs); the validator has no runtime access
 
 **⚠️ Do not proceed to Phase 6 until validation passes!**

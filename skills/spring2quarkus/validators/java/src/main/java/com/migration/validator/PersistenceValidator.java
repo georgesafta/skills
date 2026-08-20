@@ -593,9 +593,25 @@ public class PersistenceValidator {
             pb.redirectErrorStream(true);
 
             Process process = pb.start();
-            String output = new String(process.getInputStream().readAllBytes());
-            int exitCode = process.waitFor();
+            StringBuilder outputBuilder = new StringBuilder();
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    outputBuilder.append(line).append("\n");
+                }
+            }
 
+            boolean finished = process.waitFor(180, java.util.concurrent.TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                report.fail("mvn compile", "Maven compile timed out after 180 seconds");
+                System.out.println("  ✗ Maven compile timed out after 180 seconds\n");
+                return;
+            }
+
+            int exitCode = process.exitValue();
+            String output = outputBuilder.toString();
             boolean success = exitCode == 0 && output.toUpperCase().contains("BUILD SUCCESS");
 
             if (success) {

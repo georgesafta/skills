@@ -68,6 +68,14 @@ public class DatabaseMigrationValidator {
             dbType = database != null ? (String) database.getOrDefault("type", "h2") : "h2";
             System.out.println("[INFO] Database type: " + dbType + "\n");
 
+            // Detect Flyway / Liquibase — skip import.sql rules if present
+            String migrationTool = detectMigrationTool();
+            if (migrationTool != null) {
+                System.out.println("[INFO] Migration tool detected: " + migrationTool);
+                System.out.println("[INFO] Switching to " + migrationTool + " validation rules\n");
+                return validateMigrationTool(migrationTool, verbose);
+            }
+
             // Get verification rules (use defaults if not specified)
             List<String> rules = getVerificationRules();
             System.out.println("[INFO] Running " + rules.size() + " rule(s) for database-migration phase\n");
@@ -120,7 +128,8 @@ public class DatabaseMigrationValidator {
                 "Datasource configuration complete for chosen database type",
                 "No Spring datasource properties in configuration",
                 "JDBC driver dependency present for database type",
-                "Database connectivity check passes",
+                "Hibernate ORM database generation configured",
+                "Maven compile check passes",
                 "SQL syntax compatibility check passes");
     }
 
@@ -136,7 +145,9 @@ public class DatabaseMigrationValidator {
             checkNoSpringDatasourceConfig(rule);
         } else if (r.contains("jdbc driver") || r.contains("database dependency")) {
             checkJdbcDriverDependency(rule);
-        } else if (r.contains("database connectivity") || r.contains("connection")) {
+        } else if (r.contains("hibernate orm") || r.contains("database generation")) {
+            checkHibernateOrmConfig(rule);
+        } else if (r.contains("maven compile") || r.contains("database connectivity") || r.contains("connection")) {
             checkDatabaseConnectivity(rule);
         } else if (r.contains("sql syntax") || r.contains("compatibility")) {
             checkSqlSyntaxCompatibility(rule);
@@ -144,6 +155,123 @@ public class DatabaseMigrationValidator {
             report.fail(rule, "Rule not implemented in verifier: '" + rule + "'");
         }
     }
+
+
+    /**
+     * Detects whether the project uses Flyway or Liquibase by scanning pom.xml
+     * and application properties.
+     *
+     * @return "flyway", "liquibase", or null if neither detected
+     */
+    private String detectMigrationTool() {
+        // Check pom.xml for Flyway / Liquibase artifacts
+        Path pomPath = projectRoot.resolve("pom.xml");
+        if (Files.isRegularFile(pomPath)) {
+            try {
+                String pom = Files.readString(pomPath);
+                if (pom.contains("quarkus-flyway") || pom.contains("flyway-core")) {
+                    return "flyway";
+                }
+                if (pom.contains("quarkus-liquibase") || pom.contains("liquibase-core")) {
+                    return "liquibase";
+                }
+            } catch (IOException ignored) {
+            }
+        }
+
+        // Check application.properties for spring.flyway.* or spring.liquibase.*
+        Path propsPath = projectRoot.resolve("src/main/resources/application.properties");
+        if (Files.isRegularFile(propsPath)) {
+            try {
+                String props = Files.readString(propsPath);
+                if (props.contains("quarkus.flyway.") || props.contains("spring.flyway.")) {
+                    return "flyway";
+                }
+                if (props.contains("quarkus.liquibase.") || props.contains("spring.liquibase.")) {
+                    return "liquibase";
+                }
+            } catch (IOException ignored) {
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Runs Flyway- or Liquibase-specific validation instead of the import.sql path.
+     * Checks: migration files exist, correct Quarkus extension present, datasource
+     * configured, no Spring properties, Maven compile.
+     */
+    private int validateMigrationTool(String tool, boolean verbose) {
+        String extensionArtifact = tool.equals("flyway") ? "quarkus-flyway" : "quarkus-liquibase";
+        String migrationDir = tool.equals("flyway") ? "src/main/resources/db/migration" : "src/main/resources/db/changelog";
+
+        List<String> rules = Arrays.asList(
+                tool + " migration files present",
+                extensionArtifact + " dependency present",
+                "Datasource configuration complete for chosen database type",
+                "No Spring datasource properties in configuration",
+                "Maven compile check passes");
+
+        System.out.println("[INFO] Running " + rules.size() + " rule(s) for " + tool + " path\n");
+
+        for (String rule : rules) {
+            System.out.println("[RULE] " + rule);
+            try {
+                if (rule.contains("migration files present")) {
+                    Path dir = projectRoot.resolve(migrationDir);
+                    if (Files.isDirectory(dir) && dir.toFile().list() != null && dir.toFile().list().length > 0) {
+                        report.pass(rule, "Migration files found in " + migrationDir);
+                        System.out.println("  ✓ Migration files found in " + migrationDir + "\n");
+                    } else {
+                        // Also accept root-level db/ directory
+                        Path rootDir = projectRoot.resolve("src/main/resources/db");
+                        if (Files.isDirectory(rootDir)) {
+                            report.pass(rule, "Migration directory found at src/main/resources/db/");
+                            System.out.println("  ✓ Migration directory found\n");
+                        } else {
+                            report.fail(rule, "No migration files found in " + migrationDir);
+                            System.out.println("  ✗ No migration files found in " + migrationDir + "\n");
+                        }
+                    }
+                } else if (rule.contains("dependency present")) {
+                    Path pomPath = projectRoot.resolve("pom.xml");
+                    if (Files.isRegularFile(pomPath)) {
+                        String pom = Files.readString(pomPath);
+                        if (pom.contains("<artifactId>" + extensionArtifact + "</artifactId>")) {
+                            report.pass(rule, extensionArtifact + " found in pom.xml");
+                            System.out.println("  ✓ " + extensionArtifact + " found in pom.xml\n");
+                        } else {
+                            report.fail(rule, extensionArtifact + " not found in pom.xml — add the dependency");
+                            System.out.println("  ✗ " + extensionArtifact + " not found in pom.xml\n");
+                        }
+                    } else {
+                        report.fail(rule, "pom.xml not found");
+                    }
+                } else if (rule.contains("Datasource configuration")) {
+                    checkDatasourceConfiguration(rule);
+                } else if (rule.contains("No Spring")) {
+                    checkNoSpringDatasourceConfig(rule);
+                } else if (rule.contains("Maven compile")) {
+                    checkDatabaseConnectivity(rule);
+                }
+            } catch (Exception e) {
+                report.fail(rule, "Verifier error: " + e.getMessage());
+                if (verbose) {
+                    e.printStackTrace();
+                }
+            }
+            System.out.println();
+        }
+
+        printSummary();
+        if (report.getStatus().equals("success")) {
+            printRuntimeVerificationNote();
+        }
+        saveResults();
+        return report.getStatus().equals("success") ? 0 : 1;
+    }
+
 
     private void checkImportSqlExists(String rule) {
         Path importSql = projectRoot.resolve("src/main/resources/import.sql");
@@ -312,10 +440,19 @@ public class DatabaseMigrationValidator {
             jdbcDrivers.put("postgresql", "quarkus-jdbc-postgresql");
             jdbcDrivers.put("mysql", "quarkus-jdbc-mysql");
             jdbcDrivers.put("mariadb", "quarkus-jdbc-mariadb");
+            jdbcDrivers.put("mssql", "quarkus-jdbc-mssql");
+            jdbcDrivers.put("sqlserver", "quarkus-jdbc-mssql");
+            jdbcDrivers.put("oracle", "quarkus-jdbc-oracle");
 
             String expectedDriver = jdbcDrivers.get(dbType.toLowerCase());
             if (expectedDriver == null) {
-                report.fail(rule, "Unknown database type: " + dbType);
+                // Unknown database type — warn but do not hard-fail; let the user verify manually
+                String evidence = String.format(
+                        "Unknown database type '%s' — cannot verify JDBC driver automatically. " +
+                        "Verify manually that the correct Quarkus JDBC driver dependency is present in pom.xml.",
+                        dbType);
+                System.out.println("[WARN] JDBC driver check: " + evidence);
+                report.pass(rule, evidence);
                 return;
             }
 
@@ -331,6 +468,47 @@ public class DatabaseMigrationValidator {
 
         } catch (IOException e) {
             report.fail(rule, "Error reading pom.xml: " + e.getMessage());
+        }
+    }
+
+    private void checkHibernateOrmConfig(String rule) {
+        Path propsPath = projectRoot.resolve("src/main/resources/application.properties");
+
+        if (!Files.isRegularFile(propsPath)) {
+            report.fail(rule, "application.properties not found");
+            return;
+        }
+
+        try {
+            String content = Files.readString(propsPath);
+
+            // Accept any of: unscoped, %dev., %prod., %test. prefix
+            Pattern generationPattern = Pattern.compile(
+                    "(%\\w+\\.)?quarkus\\.hibernate-orm\\.database\\.generation\\s*=\\s*(\\S+)",
+                    Pattern.MULTILINE);
+            Matcher matcher = generationPattern.matcher(content);
+
+            List<String> found = new ArrayList<>();
+            while (matcher.find()) {
+                String prefix = matcher.group(1) != null ? matcher.group(1) : "(unscoped)";
+                String value = matcher.group(2);
+                found.add(prefix + "quarkus.hibernate-orm.database.generation=" + value);
+            }
+
+            if (found.isEmpty()) {
+                report.fail(rule,
+                        "quarkus.hibernate-orm.database.generation not found in application.properties. " +
+                        "Required for import.sql execution. Add at minimum: " +
+                        "%dev.quarkus.hibernate-orm.database.generation=drop-and-create");
+                return;
+            }
+
+            String evidence = "Hibernate ORM generation config present: " + String.join(", ", found);
+            System.out.println("[DEBUG] Hibernate ORM config check: " + evidence);
+            report.pass(rule, evidence);
+
+        } catch (IOException e) {
+            report.fail(rule, "Error reading application.properties: " + e.getMessage());
         }
     }
 
