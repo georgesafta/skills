@@ -26,6 +26,51 @@ Before taking any action:
 
 ---
 
+## EXECUTION MODE — READ BEFORE ANYTHING ELSE
+
+This skill runs in one of two **execution modes**. The mode changes whether the orchestrator
+stops for approval and whether it asks the user technology questions. It is the single most
+important control in this document.
+
+| Mode | Approval stops | Technology decisions | On failure |
+|---|---|---|---|
+| `interactive` (default) | HARD STOP for `yes` after every phase | Ask the user every applicable decision | Pause and ask the user |
+| `autonomous` | None — proceed automatically | Use provided values; choose best-fit for the rest | Attempt prompt-driven fix, then document as an unresolved major issue and continue |
+
+**Terminology — two independent axes. Do not conflate them:**
+- **`mode`** = *execution* axis: `interactive` | `autonomous` (this section).
+- **`strategy`** = *full-vs-compat* axis: `full-migration` | `spring-compatibility`. Internally stored as
+  `migration_strategy.migration_mode` in `migration-spec.yaml`. When this document says "the strategy," it
+  means this axis. When it says "the mode," it means the execution axis above.
+
+### Resolving `mode` and `strategy` (done in Phase 0, first-match-wins)
+
+Resolve each control independently, using the first source that provides a value:
+
+1. **Skill argument** — if the skill was invoked with a `mode` and/or `strategy` argument, use it.
+2. **Project config file** — check for `.quarkus-migration.yml` in the **source project root**. If present,
+   read its `mode` and/or `strategy` fields. Example:
+   ```yaml
+   # .quarkus-migration.yml
+   mode: autonomous              # interactive | autonomous   (optional; default interactive)
+   strategy: full-migration      # full-migration | spring-compatibility   (optional)
+   ```
+3. **Default / decide:**
+   - `mode` — if still unresolved, default to **`interactive`**. Never run autonomously unless explicitly opted in.
+   - `strategy` — if still unresolved: in interactive mode **ask** the user (Phase 2 checklist item [3]); in
+     autonomous mode the planning agent **chooses best-fit** from discovered features and records it.
+
+After resolving, **log** each:
+```
+Mode:     <interactive|autonomous> (source: <argument|config-file|default>)
+Strategy: <full-migration|spring-compatibility|unresolved> (source: <argument|config-file|ask|agent-selected>)
+```
+Then record both into `migration-context.json` and, once written, into `migration-spec.yaml`
+(`execution.mode`, `execution.mode_source`, `execution.strategy_source`, `migration_strategy.migration_mode`).
+Every downstream phase and sub-module reads these resolved values — it must never re-ask or re-decide them.
+
+---
+
 ## SUB-AGENT REGISTRY
 
 | Phase | Agent File | Primary Input | Primary Output |
@@ -51,16 +96,18 @@ Before taking any action:
 
 ## ORCHESTRATOR OPERATING RULES
 
-1. Never modify source files in bulk before Phase 1 and Phase 2 are complete and approved.
-2. Always read `migration-spec.yaml` before delegating any phase — it is the binding contract between all agents.
+**Rules 4, 9, and 10 below are conditional on the execution `mode` (see EXECUTION MODE). They apply in full when `mode = interactive`; the autonomous variant is stated inline.**
+
+1. Never modify source files in bulk before Phase 1 and Phase 2 are complete (and, in interactive mode, approved).
+2. Always read `migration-spec.yaml` before delegating any phase — it is the binding contract between all agents. Read `execution.mode` from it and behave accordingly.
 3. Skip phases only when the corresponding flag is explicitly `false` in migration-spec.yaml phases block.
-4. **HARD STOP after each phase.** Output the approval block defined in USER APPROVAL PROTOCOL. Do NOT start the next phase until the user replies with an explicit `yes`. Proceeding without `yes` is a protocol violation.
+4. **Approval gate (interactive only).** When `mode = interactive`: **HARD STOP after each phase** — output the approval block defined in USER APPROVAL PROTOCOL and do NOT start the next phase until the user replies with an explicit `yes`. When `mode = autonomous`: do NOT stop for approval — write the phase report and proceed automatically to the next phase.
 5. On compile failure after any transformation phase — immediately delegate to modules/testing/compile-fix.md.
-6. Never skip silently. Document any skipped feature in migration-spec.yaml under `skipped:` with a reason.
+6. Never skip silently. Document any skipped feature in migration-spec.yaml under `skip:` with a reason, and any unfixable failure under `unresolved_issues:`.
 7. Persist progress. After each phase completes, update migration-context.json with currentPhase and status.
-8. On session resume, read migration-context.json and confirm last completed phase with user before continuing.
-9. **NEVER choose a technology option autonomously.** For every decision in the TECHNOLOGY DECISIONS CHECKLIST (see Phase 2), stop and present the numbered options to the user. Record the user's choice in migration-spec.yaml before proceeding. If the user does not answer, re-ask — do not assume a default.
-10. If at any point you are about to write more than one file without having received a `yes` for the current phase, STOP, output the approval block, and wait.
+8. On session resume, read migration-context.json. When `mode = interactive`, confirm the last completed phase with the user before continuing; when `mode = autonomous`, resume automatically from the last completed phase without asking.
+9. **Technology decisions.** When `mode = interactive`: **NEVER choose a technology option autonomously** — for every decision in the TECHNOLOGY DECISIONS CHECKLIST (see Phase 2), stop and present the numbered options to the user, record the choice in migration-spec.yaml, and re-ask if unanswered (do not assume a default). When `mode = autonomous`: use any value already provided (argument / `.quarkus-migration.yml` / spec); for every value not provided, the planning agent chooses the best fit for the discovered codebase and records it with a one-line rationale — do not ask the user.
+10. **Multi-file write guard (interactive only).** When `mode = interactive`, if you are about to write more than one file without having received a `yes` for the current phase, STOP, output the approval block, and wait. This guard does not apply in autonomous mode.
 
 ---
 
@@ -126,7 +173,7 @@ Final    — Reporting                    -> modules/reporting.md
 * On compile failure at any phase       -> modules/testing/compile-fix.md
 ```
 
-After EVERY phase: present summary and request explicit user approval before proceeding.
+After EVERY phase: present a summary. In interactive mode, request explicit user approval before proceeding. In autonomous mode, write the phase report and proceed automatically.
 
 ---
 
@@ -144,12 +191,16 @@ Steps:
    mkdir -p <targetRepo>/migration-metadata
    ```
 6. Confirm modules/ directory is present and all module files are readable
+7. **Resolve execution `mode` and `strategy`** using the first-match-wins order in EXECUTION MODE
+   (argument → `.quarkus-migration.yml` in the source root → default/decide). Log both resolved values
+   and their sources. This must happen before the first phase gate below.
 
 Kill command:
   lsof -ti:8080,8081,5005 | xargs kill -9 2>/dev/null || true
 
 Write `migration-metadata/migration-context.json` with fields:
   generatedAt, sourceRepo, targetRepo, javaVersion, mavenVersion,
+  mode, modeSource, strategy, strategySource,
   currentPhase="0-environment-prep", completedPhases=[], phaseReports={},
   paths: {
     repoMetadata: null,
@@ -157,7 +208,7 @@ Write `migration-metadata/migration-context.json` with fields:
     migrationSpec: null
   }
 
-**HARD STOP — output the approval block. Do NOT start Phase 1 until user says `yes`.**
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 1 until user says `yes`. Autonomous: write the phase report and proceed to Phase 1.**
 
 ---
 
@@ -176,7 +227,7 @@ Key fields to confirm from repo-metadata.json before proceeding:
 - database_product
 - messaging_provider
 
-**HARD STOP — output the approval block. Do NOT start Phase 2 until user says `yes`.**
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 2 until user says `yes`. Autonomous: write the phase report and proceed to Phase 2.**
 
 ---
 
@@ -188,9 +239,11 @@ Inputs: repo-metadata.json, dependency-analysis.yaml, templates/migration-spec-t
 
 ### TECHNOLOGY DECISIONS CHECKLIST
 
-Before the planning agent writes migration-spec.yaml, you MUST stop and ask the user the decisions below.
+**Interactive mode:** Before the planning agent writes migration-spec.yaml, you MUST stop and ask the user the decisions below.
 Present them in two stages — ask Stage 1 first, wait for answers, then present the applicable Stage 2 questions.
 Do not skip any decision that is relevant to the detected features in repo-metadata.json.
+
+**Autonomous mode:** Do NOT ask. For each decision, use the value already resolved (argument / `.quarkus-migration.yml` / spec) when present; otherwise the planning agent chooses the best fit for the discovered codebase and records it with a one-line rationale in migration-spec.yaml. Use the checklist below only as the menu of valid values. `[3]` (the strategy) follows the resolved `strategy`; if it was unresolved, pick `full-migration` unless discovery shows a large surface of hard-to-rewrite Spring features, in which case pick `spring-compatibility`.
 
 ```
  TECHNOLOGY DECISIONS — STAGE 1 (always ask these first)
@@ -289,11 +342,11 @@ Once the user answers [1]–[3], present the applicable Stage 2 questions:
                    ⚠ SecurityFilterChain/WebSecurityConfigurerAdapter are NOT bridged — must still be replaced
 ```
 
-Do NOT default any of the above. Wait for the user's answers. Record all choices in migration-spec.yaml under `userDecisions:` before the planning agent finalises the spec.
+**Interactive mode:** Do NOT default any of the above. Wait for the user's answers. Record all choices in migration-spec.yaml under `userDecisions:` before the planning agent finalises the spec, then present the full migration-spec.yaml plan to the user.
 
-Then present the full migration-spec.yaml plan to the user.
+**Autonomous mode:** Do not wait. Record the agent-selected values (and rationale) in migration-spec.yaml, then proceed.
 
-**HARD STOP — wait for `yes` before Phase 3.**
+**PHASE GATE — interactive: HARD STOP, present the full migration-spec.yaml plan and wait for `yes` before Phase 3. Autonomous: record resolved decisions in the spec and proceed to Phase 3.**
 
 ---
 
@@ -314,7 +367,7 @@ java -jar target/migration-validator-1.0.0.jar validate project-setup \
   <target_project_root> \
   <migration-spec.yaml>
 ```
-**HARD STOP — output the approval block. Do NOT start Phase 4 until user says `yes`.**
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 4 until user says `yes`. Autonomous: write the phase report and proceed to Phase 4.**
 
 ---
 
@@ -340,7 +393,7 @@ Important:
 
 On compile error -> delegate to modules/testing/compile-fix.md.
 
-**HARD STOP — output the approval block. Do NOT start Phase 5 until user says `yes`.**
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 5 until user says `yes`. Autonomous: write the phase report and proceed to Phase 5.**
 
 ---
 
@@ -377,7 +430,7 @@ The Phase 5 agent MUST also verify database initialization at runtime by:
 
 On compile error -> delegate to modules/testing/compile-fix.md.
 
-**HARD STOP — output the approval block. Do NOT start Phase 6 until user says `yes`.**
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 6 until user says `yes`. Autonomous: write the phase report and proceed to Phase 6.**
 
 ---
 
@@ -388,7 +441,7 @@ Only run if spring_service: true or spring_component: true in migration-spec.yam
 After transformation, run `mvn clean package -DskipTests` to ensure compilation is successful.
 On compile error -> delegate to modules/testing/compile-fix.md.
 
-**HARD STOP — output the approval block. Do NOT start Phase 7 until user says `yes`.**
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 7 until user says `yes`. Autonomous: write the phase report and proceed to Phase 7.**
 
 ---
 
@@ -399,7 +452,7 @@ Only run if spring_kafka: true or spring_rabbitmq: true or spring_jms: true in m
 After transformation, run `mvn clean package -DskipTests` to ensure compilation is successful.
 On compile error -> delegate to modules/testing/compile-fix.md.
 
-**HARD STOP — output the approval block. Do NOT start Phase 8 until user says `yes`.**
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 8 until user says `yes`. Autonomous: write the phase report and proceed to Phase 8.**
 
 ---
 
@@ -430,7 +483,7 @@ java -jar target/migration-validator-1.0.0.jar validate rest \
 
 On compile error -> delegate to modules/testing/compile-fix.md.
 
-**HARD STOP — output the approval block. Do NOT start Phase 8B until user says `yes`.**
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 8B until user says `yes`. Autonomous: write the phase report and proceed to Phase 8B.**
 
 ---
 
@@ -469,7 +522,7 @@ Where `<migration_type>` is one of: `jsp-qute`, `thymeleaf-qute`, `freemarker-qu
 
 On compile error or validation failure -> delegate to modules/testing/compile-fix.md.
 
-**HARD STOP — output the approval block. Do NOT start Phase 9 until user says `yes`.**
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 9 until user says `yes`. Autonomous: write the phase report and proceed to Phase 9.**
 
 ---
 
@@ -479,7 +532,7 @@ Delegate to modules/configuration.md.
 Produces: application.properties updates, Dockerfile, docker-compose.yml, README.md, lifecycle hooks.
 After transformation, run `mvn clean package -DskipTests` to ensure compilation is successful.
 
-**HARD STOP — output the approval block. Do NOT start Phase 11 until user says `yes`.**
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 11 until user says `yes`. Autonomous: write the phase report and proceed to Phase 11.**
 
 
 ## VALIDATION GATES
@@ -570,15 +623,24 @@ For each phase, the orchestrator MUST:
 
 ### Error Resolution Process
 
-When a validation gate fails:
+When a validation gate fails, behavior depends on the execution `mode`:
 
+**Interactive mode:**
 1. **Present errors to user** with the approval block showing FAIL status
 2. **Ask user** whether to:
    - Fix automatically (delegate to compile-fix agent)
    - Fix manually (user will fix and re-run validator)
-   - Skip and document (add to skipped features in migration-spec.yaml)
+   - Skip and document (add to `skip:` in migration-spec.yaml)
 3. **Re-run validator** after fixes are applied
 4. **Repeat** until validation passes
+
+**Autonomous mode (fix-then-document-and-continue):**
+1. Delegate to modules/testing/compile-fix.md (respecting `max_compile_fix_retries_per_file`, default 3).
+2. **Re-run the validator** after each fix attempt.
+3. If the gate now passes → proceed to the next phase.
+4. If it still fails after retries are exhausted → record the failure under `unresolved_issues:` in
+   migration-spec.yaml (with phase, files, attempted fixes, severity) and **proceed to the next phase**.
+   Do not stop and do not ask. All unresolved issues are surfaced in the final Migration Report.
 
 ### Integration with User Approval Protocol
 
@@ -603,15 +665,20 @@ The approval block for each phase MUST include validation status:
 
 On `show-validation` — print the full validation report, then re-print the block and wait.
 
-### Fail-Fast Principle
+### Fail-Fast Principle (interactive mode)
 
-**The orchestrator MUST NOT proceed to the next phase if validation fails.**
+**In interactive mode, the orchestrator MUST NOT proceed to the next phase if validation fails.**
 
 This prevents:
 - Cascading errors across phases
 - Wasted time migrating code built on faulty foundations
 - Difficult-to-debug issues in later phases
 - Poor migration quality
+
+**In autonomous mode, fail-fast is replaced by fix-then-document-and-continue** (see Error Resolution
+Process above): the orchestrator attempts prompt-driven fixes, and if they are exhausted it records the
+failure under `unresolved_issues:` and continues rather than halting. This keeps an unattended run moving
+while still surfacing every unresolved problem in the final report.
 
 ### Phase 11 Validation
 
@@ -624,7 +691,7 @@ Phase 11 uses `validate smoke-test` which performs functional testing on the run
 Delegate to modules/testing/validation.md.
 On failure -> delegate to modules/testing/compile-fix.md (up to 3 retries per file).
 
-**HARD STOP — output the approval block. Do NOT start Final Reporting until user says `yes`.**
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Final Reporting until user says `yes`. Autonomous: write the phase report and proceed to Final Reporting.**
 
 ---
 
@@ -635,7 +702,11 @@ Aggregates all phase reports and writes migration-summary.md.
 
 ---
 
-## USER APPROVAL PROTOCOL
+## USER APPROVAL PROTOCOL (INTERACTIVE MODE ONLY)
+
+**This entire protocol applies only when `execution.mode = interactive`. In autonomous mode, skip it
+entirely: write the phase report and proceed to the next phase (see EXECUTION MODE and the per-phase
+PHASE GATE notes).**
 
 **This is a HARD STOP. After every phase you MUST print the block below and HALT.**
 **DO NOT write any files, run any commands, or start the next phase until the user sends `yes`.**
@@ -676,6 +747,10 @@ Maintain migration-context.json updated after every phase:
   "migrationWorkspace": "<absolute-path-to-migration-directory>",
   "javaVersion": "<version>",
   "mavenVersion": "<version>",
+  "mode": "<interactive|autonomous>",
+  "modeSource": "<argument|config-file|default>",
+  "strategy": "<full-migration|spring-compatibility|null>",
+  "strategySource": "<argument|config-file|ask|agent-selected|null>",
   "currentPhase": "<phase-id>",
   "completedPhases": [],
   "paths": {
@@ -706,8 +781,9 @@ Maintain migration-context.json updated after every phase:
 2. Delegate to modules/testing/compile-fix.md with error context
 3. Maximum 3 retries per file
 4. If still failing — mark MANUAL_REVIEW_REQUIRED in compile-fix-report.json
-5. Present manual-review list to user
-6. Ask whether to continue with those files flagged, or stop
+5. Then, according to `execution.mode`:
+   - **interactive** — present the manual-review list to the user and ask whether to continue with those files flagged, or stop.
+   - **autonomous** — record each flagged item under `unresolved_issues:` in migration-spec.yaml and continue automatically. Do not ask.
 
 ---
 
@@ -762,6 +838,27 @@ The orchestrator will prompt you for the target directory during Phase 0.
 Migrate <path-to-source-spring-project> to Quarkus at <path-to-target-directory>
 ```
 
+### Choosing execution mode and strategy
+
+By default the skill runs **interactively** (approval `yes` after every phase, all technology decisions asked).
+To run **autonomously** (no approval stops; the agent chooses best-fit technologies and continues past
+issues it cannot fix, documenting them for the final report), opt in one of two ways:
+
+**A) `.quarkus-migration.yml` in the source project root (recommended):**
+```yaml
+# .quarkus-migration.yml
+mode: autonomous              # interactive | autonomous   (default: interactive)
+strategy: full-migration      # full-migration | spring-compatibility   (optional)
+```
+
+**B) In the invocation prompt:**
+```
+Migrate ./my-spring-app to Quarkus autonomously using the full migration strategy
+```
+
+Resolution is first-match-wins: **prompt argument → `.quarkus-migration.yml` → default**. `mode` defaults to
+`interactive`; an unresolved `strategy` is asked (interactive) or agent-selected (autonomous).
+
 ### Examples:
 
 1. **Interactive mode (orchestrator prompts for paths):**
@@ -799,7 +896,7 @@ During **Phase 0 - Environment Preparation**, the orchestrator will:
 - Both source and target paths can be absolute or relative to your current workspace
 - If you're unsure about paths, just start the skill and let it prompt you - this is the safest approach
 
-The orchestrator will guide you phase by phase, requiring explicit approval (`yes`) after each phase before proceeding.
+In interactive mode (the default) the orchestrator guides you phase by phase, requiring explicit approval (`yes`) after each phase before proceeding. In autonomous mode it runs all phases without stopping, choosing best-fit technologies and documenting any unresolved issues in the final report.
 
 **Works with:**
 - Spring Framework standalone applications

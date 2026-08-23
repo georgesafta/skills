@@ -21,11 +21,27 @@ Create a comprehensive migration plan (migration-spec.yaml) based on repository 
 - templates/migration-spec-template.yaml
 - references/spring-compat-mode-support.md (compat extension details, version availability, known gaps)
 
+## Execution mode
+
+This agent runs under the orchestrator's resolved execution `mode` (`interactive` | `autonomous`), read
+from `migration-context.json` / `migration-spec.yaml` (`execution.mode`). See SKILL.md → EXECUTION MODE.
+
+- **interactive** — present the TECHNOLOGY DECISIONS below and wait for the user's answers.
+- **autonomous** — do NOT ask. For each decision use the value already resolved (argument /
+  `.quarkus-migration.yml` / spec) when present; otherwise choose the best fit for the discovered codebase
+  (see AUTONOMOUS SELECTION POLICY) and record it with a one-line rationale in `decisions:`.
+
+Do not conflate the two axes: `mode` is execution (interactive/autonomous); `migration_mode` in the spec is
+the **strategy** (full-migration/spring-compatibility). The strategy is resolved the same way — provided
+value first, otherwise asked (interactive) or agent-selected (autonomous).
+
 ## Steps
 
 1. Read repo-metadata.json and dependency-analysis.yaml
 2. Load migration-spec-template.yaml
-3. Present technology decisions to user (see TECHNOLOGY DECISIONS below)
+3. Resolve technology decisions per the execution mode:
+   - **interactive** — present technology decisions to the user (see TECHNOLOGY DECISIONS below)
+   - **autonomous** — apply provided values and auto-select the rest (see AUTONOMOUS SELECTION POLICY)
 4. Populate migration-spec.yaml with:
    - Project metadata
    - Source technology details
@@ -41,7 +57,7 @@ Create a comprehensive migration plan (migration-spec.yaml) based on repository 
 
 ## TECHNOLOGY DECISIONS
 
-Present these decisions to the user in two stages. Ask Stage 1 first and wait for answers before showing Stage 2.
+**Interactive mode only.** Present these decisions to the user in two stages. Ask Stage 1 first and wait for answers before showing Stage 2. In autonomous mode, do not present these — use them only as the menu of valid values and apply the AUTONOMOUS SELECTION POLICY below.
 
 ```
 TECHNOLOGY DECISIONS — STAGE 1 (always ask these first)
@@ -165,6 +181,29 @@ Once the user answers [1]–[3], present the applicable Stage 2 questions:
                   ⚠ SecurityFilterChain/WebSecurityConfigurerAdapter are NOT bridged — must still be replaced
 ```
 
+## AUTONOMOUS SELECTION POLICY
+
+Applies only when `mode = autonomous`. For every decision, **use a provided value if one exists**
+(argument / `.quarkus-migration.yml` / already in the spec). Only for values still unresolved, choose the
+best fit below, and record each choice + one-line rationale in `decisions:`. Never ask the user.
+
+| Decision | Autonomous default | Rationale basis |
+|---|---|---|
+| [1] Quarkus version | Latest stable (resolve via the maven-metadata curl in [1]) | Newest features/fixes unless a version was pinned |
+| [2] Java version | Match source `java_version` if ≥ 17, else 17 | Preserve the project's runtime; 17 is the floor |
+| [3] Strategy (`migration_mode`) | `full-migration`, unless discovery shows a large surface of hard-to-rewrite Spring features (heavy Spring Security config, broad Spring Data usage), in which case `spring-compatibility` | Best long-term fit vs. migration risk |
+| [4] Persistence (full only) | `hibernate-orm-panache` when JPA detected | Least boilerplate, idiomatic Quarkus |
+| [5] Messaging | Transport matching the detected provider (Kafka→kafka, RabbitMQ→amqp, JMS→artemis-jms); `none` if no messaging | Preserve existing integration |
+| [6] REST framework (full only) | `quarkus-rest` (RESTEasy Reactive) | Recommended default |
+| [7] Database | `H2 dev + PostgreSQL prod` unless source pins a specific DB, then keep it | Safe dev/prod split |
+| [8] Security (full only) | `oidc` if an external IdP is evident, else `custom` (quarkus-security); `none` only if no security detected | Preserve auth posture |
+| [9] Container | `Docker (JVM fast-jar)` | Recommended default |
+| [10] View technology | Qute when < 5 view files; MyFaces when ≥ 5 JSF files; Qute otherwise | Matches the existing file-count heuristic in Phase 8B |
+| [11] Skip | Skip nothing unless a feature is explicitly out of scope in `.quarkus-migration.yml` | Maximize coverage |
+
+After selecting, still run the COMPAT MODE FLAGS derivation and the version gate below exactly as in
+interactive mode — only the *asking* is skipped.
+
 ## Migration Complexity Assessment
 
 Calculate complexity based on:
@@ -205,7 +244,16 @@ feature is present in the source project; otherwise `false`:
 
 After deriving the active compat flags, cross-check each against the **Min Quarkus** column above.
 If the resolved `target_technology.quarkus_version` is **older** than the minimum for any active
-extension, you MUST warn the user before writing migration-spec.yaml:
+extension, resolve the conflict according to mode:
+
+- **interactive** — warn the user before writing migration-spec.yaml and wait for their choice (below).
+- **autonomous** — prefer option **A** automatically: bump `target_technology.quarkus_version` to the
+  highest required minimum among active extensions, and record the bump in `decisions:` with rationale. If
+  a version was explicitly pinned (argument or `.quarkus-migration.yml`) and cannot be bumped, fall back to
+  option **B** (drop that one compat bridge and migrate the feature manually), and record the affected
+  feature under `unresolved_issues:`.
+
+The interactive warning:
 
 ```
 ⚠️  COMPAT VERSION CONFLICT
@@ -221,7 +269,8 @@ Options:
 Reply with A, B, C, or a specific version number.
 ```
 
-Do NOT write migration-spec.yaml until the conflict is resolved.
+In interactive mode, do NOT write migration-spec.yaml until the conflict is resolved. In autonomous mode,
+apply the automatic resolution above and continue.
 For the full extension version table and compat details, see references/spring-compat-mode-support.md.
 
 All `compat_mode.*` flags must be explicitly set to `true` or `false` (never null).

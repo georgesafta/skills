@@ -14,6 +14,12 @@ metadata:
 
 Validate that the migrated Quarkus application compiles, packages, and runs correctly.
 
+> **Execution mode:** This agent has **no interactive approval gate**. "Wait for the application to start"
+> below is a runtime readiness wait (waiting on the JVM), not a pause for user input, and runs identically
+> in `interactive` and `autonomous` modes. When validation FAILS, the orchestrator applies its mode-aware
+> gate policy (SKILL.md → Error Resolution Process): interactive pauses and asks; autonomous attempts
+> compile-fix, then records any unresolved failure under `unresolved_issues:` and continues.
+
 ## ⚠️ CRITICAL: Output File Location
 
 **YOU MUST save the validation report to this exact location:**

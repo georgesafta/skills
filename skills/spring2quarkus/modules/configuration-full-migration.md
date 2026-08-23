@@ -18,6 +18,13 @@ metadata:
 > Output file location, inputs, and the shared Property Migration table are defined in the
 > entry-point file — read those first.
 
+> **Execution mode:** This module applies deterministic property and class transformations and
+> contains no user decision gates. It reads `execution.mode` from `migration-spec.yaml` only for
+> error handling: on a compile failure it delegates to
+> [`modules/testing/compile-fix.md`](../testing/compile-fix.md) (3 retries per file); if still
+> failing, **`interactive`** pauses and asks the user, **`autonomous`** records the failure under
+> `unresolved_issues:` and continues — no prompts in either path.
+
 ## Overview
 
 No compat bridge extensions are used. All Spring configuration constructs are rewritten to their

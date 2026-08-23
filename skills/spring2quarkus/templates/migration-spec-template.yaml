@@ -28,6 +28,22 @@ metadata:
   schema_version: "1.0"
 
 # ─────────────────────────────────────────────────────────────────────────────
+# SECTION 1b — EXECUTION MODE
+# ─────────────────────────────────────────────────────────────────────────────
+# Resolved by the orchestrator in Phase 0 (see SKILL.md → resolution order):
+#   skill argument  →  .quarkus-migration.yml  →  default (interactive).
+# This is the EXECUTION axis and is distinct from migration_strategy.migration_mode
+# (the full-vs-compat STRATEGY axis in SECTION 12).
+execution:
+  mode: interactive               # interactive | autonomous
+                                  #   interactive — HARD STOP for `yes` after each phase; ask all technology decisions.
+                                  #   autonomous  — no approval stops; agent chooses best-fit values for anything
+                                  #                 not already provided; on failure, fix then document & continue.
+  mode_source: default            # argument | config-file | default  (where `mode` was resolved from)
+  strategy_source: null           # argument | config-file | ask | agent-selected
+                                  #   how migration_strategy.migration_mode (the STRATEGY) was resolved.
+
+# ─────────────────────────────────────────────────────────────────────────────
 # SECTION 2 — SOURCE TECHNOLOGY
 # ─────────────────────────────────────────────────────────────────────────────
 source_technology:
@@ -185,7 +201,10 @@ configurations: []
 # SECTION 12 — MIGRATION STRATEGY
 # ─────────────────────────────────────────────────────────────────────────────
 migration_strategy:
-  migration_mode: null            # *** USER DECISION REQUIRED ***
+  migration_mode: null            # *** THE STRATEGY (full-vs-compat axis) ***
+                                  # Resolved value — user-decided in interactive mode; agent-selected from
+                                  # discovered features in autonomous mode when not provided via argument or
+                                  # .quarkus-migration.yml (`strategy:` field). See execution.strategy_source.
                                   # full-migration       — rewrite all Spring annotations to CDI/JAX-RS/Panache
                                   # spring-compatibility — keep Spring annotations via Quarkus extension bridges
   service_layer: null             # auto-set by planning agent:
@@ -353,12 +372,30 @@ skip: []
 #     reason: "Legacy code not in use"
 
 # ─────────────────────────────────────────────────────────────────────────────
+# SECTION 15b — UNRESOLVED MAJOR ISSUES
+# ─────────────────────────────────────────────────────────────────────────────
+# Populated primarily in autonomous mode. When a phase cannot be completed cleanly
+# (compile-fix retries exhausted, failed validation gate, blocking precondition),
+# the orchestrator records it here and CONTINUES to the next phase instead of
+# stopping. Surfaced in the final Migration Report.
+unresolved_issues: []
+# Format per entry:
+#   - phase: "5-persistence"
+#     issue: "OrderRepository.findByStatus could not be migrated to Panache"
+#     files: ["src/main/java/com/example/OrderRepository.java"]
+#     attempted_fixes: 3
+#     severity: ERROR            # ERROR (blocking) | WARNING (non-blocking)
+
+# ─────────────────────────────────────────────────────────────────────────────
 # SECTION 16 — ORCHESTRATOR POLICY
 # ─────────────────────────────────────────────────────────────────────────────
+# These values are DERIVED from execution.mode (SECTION 1b), not set independently:
+#   interactive → require_user_acceptance_after_each_phase: true,  on_manual_review_required: pause-and-ask
+#   autonomous  → require_user_acceptance_after_each_phase: false, on_manual_review_required: document-and-continue
 approval_policy:
-  require_user_acceptance_after_each_phase: true
+  require_user_acceptance_after_each_phase: true   # false when execution.mode = autonomous
   max_compile_fix_retries_per_file: 3
-  on_manual_review_required: pause-and-ask
+  on_manual_review_required: pause-and-ask         # document-and-continue when execution.mode = autonomous
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECTION 17 — VERIFICATION RULES

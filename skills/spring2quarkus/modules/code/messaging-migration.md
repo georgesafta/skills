@@ -10,6 +10,13 @@ metadata:
 
 # Phase 7 — Messaging Migration Agent
 
+> **Execution mode:** This module applies deterministic listener and producer transformations and
+> contains no user decision gates. It reads `execution.mode` from `migration-spec.yaml` only for
+> error handling: on a compile failure it delegates to
+> [`modules/testing/compile-fix.md`](../testing/compile-fix.md) (3 retries per file); if still
+> failing, **`interactive`** pauses and asks the user, **`autonomous`** records the failure under
+> `unresolved_issues:` and continues — no prompts in either path.
+
 ## Purpose
 
 Convert Spring messaging (Kafka, RabbitMQ, JMS) to Quarkus SmallRye Reactive Messaging.

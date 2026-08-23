@@ -6,25 +6,35 @@ A comprehensive, multi-agent framework for migrating Spring Framework and Spring
 
 This framework provides a structured, phase-by-phase approach to migrating Spring Framework and Spring Boot applications to Quarkus. It uses specialized agents for different aspects of the migration, ensuring reliability and traceability.
 
-### 🎨 Interactive Development Experience
+### 🎨 Execution Modes: Interactive (default) or Autonomous
 
-**This skill is designed for interactive development in an IDE environment (VS Code, IntelliJ, etc.) with active developer involvement.**
+The skill runs in one of two **execution modes**:
 
-Key characteristics:
-- **Developer-Guided Migration** - You remain in control throughout the process, making key technology decisions at critical points
-- **Phase-by-Phase Approval** - Each migration phase requires explicit approval (`yes`) before proceeding, allowing you to review changes
-- **Technology Decision Points** - The framework presents multiple options for persistence strategies, messaging transports, database choices, and more - you choose what fits your needs
-- **Real-Time Review** - Examine generated code, validation reports, and transformation results before moving forward
-- **Interactive Problem Solving** - When issues arise, you can choose to fix automatically, manually, or skip and document for later
+- **Interactive (default)** — designed for IDE-based development (VS Code, IntelliJ, etc.) with active
+  developer involvement. You remain in control, making key technology decisions at critical points, and
+  each phase requires explicit approval (`yes`) before proceeding so you can review changes as they happen.
+- **Autonomous (opt-in)** — the skill runs end-to-end without approval stops. It chooses best-fit
+  technologies from the discovered codebase for any decision you didn't pin, and when it hits a problem it
+  can't fix, it documents the issue and continues rather than pausing — every unresolved item is surfaced
+  in the final Migration Report.
 
-**Why IDE-based?**
-- Immediate access to generated code for review
-- Side-by-side comparison of source and target projects
-- Ability to make manual adjustments during migration
-- Real-time validation feedback
-- Full control over the migration pace and decisions
+Two independent controls select behavior (see [Configuration](#configuration)):
 
-This is **not** a fully automated, hands-off migration tool. It's an intelligent assistant that guides you through the migration while keeping you involved in important decisions and allowing you to review and validate each step.
+- **`mode`** — `interactive` | `autonomous` (the execution axis above).
+- **`strategy`** — `full-migration` (rewrite Spring annotations to CDI/JAX-RS/Panache) |
+  `spring-compatibility` (keep Spring annotations via Quarkus extension bridges).
+
+**Interactive-mode characteristics:**
+- **Developer-Guided Migration** - You make key technology decisions at critical points
+- **Phase-by-Phase Approval** - Each phase requires explicit approval (`yes`) before proceeding
+- **Technology Decision Points** - The framework presents options for persistence, messaging, database, and more
+- **Real-Time Review** - Examine generated code and validation reports before moving forward
+- **Interactive Problem Solving** - Fix automatically, manually, or skip and document
+
+In interactive mode this is **not** a hands-off tool — it's an assistant that keeps you involved in
+important decisions. Autonomous mode trades that involvement for an unattended run; use it when you've
+already decided on a strategy (or trust the agent to pick one) and want the migration to complete without
+prompts.
 
 **Supports:**
 - Spring Framework (standalone applications)
@@ -76,10 +86,10 @@ The framework is based on a **multi-agent architecture** where each agent handle
 - Comprehensive migration summary
 
 ### 🛡️ Safety Features
-- User approval required after each phase
+- User approval required after each phase (interactive mode)
 - Automatic backup and rollback capability
 - Compile error detection and auto-fix
-- Manual review flagging for complex cases
+- Manual review flagging for complex cases (interactive) / unresolved-issue documentation (autonomous)
 
 ## Directory Structure
 
@@ -158,6 +168,39 @@ bob/spring2quarkusmigration_java_validators/
 | `spring.jpa.hibernate.ddl-auto` | `quarkus.hibernate-orm.database.generation` |
 | `spring.kafka.bootstrap-servers` | `kafka.bootstrap.servers` |
 
+## Configuration
+
+You can configure the migration up front with a `.quarkus-migration.yml` file in your **source project
+root**, or pass the same controls in the invocation prompt.
+
+```yaml
+# .quarkus-migration.yml
+mode: autonomous              # interactive | autonomous   (optional; default: interactive)
+strategy: full-migration      # full-migration | spring-compatibility   (optional)
+```
+
+- **`mode`** — `autonomous` runs the whole migration without approval prompts; `interactive` (default)
+  stops for `yes` after each phase.
+- **`strategy`** — pins the full-vs-compat approach. If omitted, it is asked (interactive) or chosen by the
+  agent from the discovered code (autonomous).
+
+When the file is present, the skill skips the corresponding prompts and uses the configured values. This is
+useful for teams that have already decided on a mode/strategy and don't want to be asked every time, or for
+unattended/CI-style runs.
+
+You can also pass the controls directly when invoking the skill:
+
+```
+Migrate ./my-spring-app to Quarkus autonomously using the full migration strategy
+```
+
+**Resolution order (first match wins), applied independently to each control:**
+
+1. Skill/prompt argument
+2. `.quarkus-migration.yml` config file
+3. Default — `mode` defaults to `interactive`; an unresolved `strategy` is asked (interactive) or
+   agent-selected (autonomous)
+
 ## Usage
 
 ### Prerequisites
@@ -197,11 +240,11 @@ cd benchmark
    Say: Migrate <path-to-spring-project> to <target-migration-folder>
    ```
 
-3. **Follow the phase-by-phase process:**
-   - Review each phase output
-   - Approve with `yes` to proceed
-   - Use `show-details` for more information
-   - Use `no` to fix issues before proceeding
+3. **Follow the process:**
+   - **Interactive mode:** review each phase output, approve with `yes` to proceed, use `show-details` for
+     more information, or `no` to fix issues before proceeding.
+   - **Autonomous mode:** the skill runs all phases without prompting; review the final Migration Report,
+     including any items recorded under `unresolved_issues`.
 
 3. **Monitor progress:**
    - Check `migration-context.json` for current state
@@ -337,7 +380,7 @@ java -jar target/migration-validator-1.0.0.jar validate config \
 
 ### Phase 2: Migration Planning
 - Create comprehensive migration plan
-- Present technology decisions to user
+- Resolve technology decisions (ask the user in interactive mode; auto-select best fit in autonomous mode)
 - Generate migration-spec.yaml
 
 ### Phase 3: Project Bootstrap

@@ -16,6 +16,13 @@ metadata:
 > `spring-di-compat`).
 > Output file location and inputs are defined in the entry-point file — read those first.
 
+> **Execution mode:** This module applies deterministic annotation and import transformations and
+> contains no user decision gates. It reads `execution.mode` from `migration-spec.yaml` only for
+> error handling: on a compile failure it delegates to
+> [`modules/testing/compile-fix.md`](../testing/compile-fix.md) (3 retries per file); if still
+> failing, **`interactive`** pauses and asks the user, **`autonomous`** records the failure under
+> `unresolved_issues:` and continues — no prompts in either path.
+
 ## Overview
 
 All Spring stereotype and DI annotations are replaced with their CDI / Quarkus equivalents. No
