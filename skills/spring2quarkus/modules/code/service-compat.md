@@ -49,8 +49,14 @@ things in the "No" column above.
 > - `quarkus-spring-scheduled` (optional, for keeping Spring `@Scheduled`) — requires **1.6.0**
 > - `quarkus-spring-tx` (optional, for keeping Spring `@Transactional` imports) — requires **3.37.0**
 >
-> If the target version in `migration-spec.yaml` is older than these minimums, flag the conflict to
-> the user and refer to [spring-compat-mode-support.md](../../references/spring-compat-mode-support.md) for resolution options.
+> If the target version in `migration-spec.yaml` is older than these minimums:
+> - **interactive** — flag the conflict to the user and refer to [spring-compat-mode-support.md](../../references/spring-compat-mode-support.md) for resolution options.
+> - **autonomous** — do not prompt; record the conflict under `unresolved_issues:` (severity ERROR) and continue with the affected bridge dropped (migrate that annotation manually as in the Option A path), per SKILL.md → EXECUTION MODE.
+
+> **Execution mode:** This module has project-level "choose one option" decisions (Step 2). Read
+> `execution.mode` from `migration-spec.yaml`. In **interactive** mode present the options. In
+> **autonomous** mode do NOT ask — pick the option marked *recommended* (or the mode default noted at the
+> step) and record the choice + rationale in the spec's `decisions:` section.
 
 ---
 
@@ -74,7 +80,7 @@ These decisions apply uniformly to all files — make them before the per-file p
 ### `@Transactional`
 
 `quarkus-spring-di` does **not** bridge `org.springframework.transaction.annotation.Transactional`.
-Choose one option:
+Choose one option (autonomous default: **Option A**; if target Quarkus < 3.37.0, Option A is the only valid choice):
 
 **Option A — Migrate import (recommended):** replace
 `import org.springframework.transaction.annotation.Transactional` with
@@ -94,7 +100,10 @@ If `compat_mode.spring_tx: true` is already set in the spec, no action needed he
 
 ### `@Scheduled`
 
-`quarkus-spring-di` does **NOT** bridge Spring `@Scheduled`. Choose one option:
+`quarkus-spring-di` does **NOT** bridge Spring `@Scheduled`. Choose one option (autonomous default:
+**Option B** — migrate to the Quarkus `@Scheduled` syntax, the correct end state; use Option A only if
+target Quarkus ≥ 1.6.0 and the project has many `@Scheduled` methods where preserving Spring syntax saves
+significant effort — but note `fixedDelay` is not bridged):
 
 **Option A — Add `quarkus-spring-scheduled` (keep Spring syntax):**
 ```xml

@@ -25,8 +25,26 @@ Generate comprehensive migration summary report.
 1. Read all phase reports
 2. Aggregate statistics
 3. Identify manual review items
-4. Calculate migration metrics
-5. Generate migration-summary.md
+4. **Read `execution.mode`, `migration_strategy`, `decisions:`, `skip:`, and `unresolved_issues:` from `migration-spec.yaml`**
+5. Calculate migration metrics
+6. Generate migration-summary.md
+
+## Reporting execution mode, decisions, and unresolved issues
+
+The summary MUST record how the migration was run and what remains open — this is the primary place an
+**autonomous** run surfaces problems it documented rather than paused on:
+
+- **Execution mode & strategy** — state `execution.mode` (interactive/autonomous) and the resolved
+  `migration_strategy.migration_mode` (the full-vs-compat strategy).
+- **Decisions** — list the entries from the spec's `decisions:` section. In autonomous mode these are the
+  agent-selected technology choices and their one-line rationales; include them so the reader knows what was
+  chosen on their behalf.
+- **Unresolved major issues** — render every entry from `unresolved_issues:` in a dedicated section
+  (phase, issue, files, attempted fixes, severity). If the list is non-empty, the migration **Status** must
+  reflect it (e.g. ⚠️ COMPLETED WITH UNRESOLVED ISSUES) rather than ✅ COMPLETED.
+- **Skipped features** — list the entries from `skip:`.
+
+If `unresolved_issues:` is empty, print "None" under that section (same convention as Manual Review Items).
 
 ## Output
 
@@ -54,7 +72,9 @@ Example:
 ## Overview
 - **Project**: myapp-quarkus
 - **Migration Date**: 2024-01-15
-- **Status**: ✅ COMPLETED
+- **Execution Mode**: autonomous
+- **Strategy**: full-migration
+- **Status**: ⚠️ COMPLETED WITH UNRESOLVED ISSUES
 
 ## Statistics
 - **Files Modified**: 87
@@ -75,11 +95,24 @@ Example:
 - **Memory Usage**: 512MB → 256MB (50% reduction)
 - **Build Time**: 45s → 12s (73% faster)
 
+## Decisions
+- **Persistence**: Hibernate ORM with Panache — least boilerplate, JPA detected (agent-selected)
+- **REST framework**: Quarkus REST (RESTEasy Reactive) — recommended default (agent-selected)
+- **View technology**: Qute — 3 JSF files (< 5 threshold) (agent-selected)
+
 ## Manual Review Items
 - None
 
+## Unresolved Issues
+- **Phase 5 (persistence)**: `OrderRepository.findByStatus` could not be migrated to Panache — 3 fix
+  attempts exhausted. Files: `src/main/java/com/example/OrderRepository.java`. Severity: ERROR
+
+## Skipped Features
+- None
+
 ## Next Steps
-1. Run full test suite
-2. Performance testing
-3. Deploy to staging
-4. Update documentation
+1. Resolve the items under **Unresolved Issues** above
+2. Run full test suite
+3. Performance testing
+4. Deploy to staging
+5. Update documentation

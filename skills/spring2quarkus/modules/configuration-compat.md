@@ -30,8 +30,12 @@ runtime — **do not rewrite them**. This phase is surgical: verify extensions, 
 > - `quarkus-spring-boot-properties` (`config_properties = spring-boot-properties-compat`) — available since **1.2.0**
 >
 > If the target version in `migration-spec.yaml` is older than the minimum for any active compat
-> extension, flag the conflict to the user and refer to
-> `references/spring-compat-mode-support.md` for resolution options.
+> extension:
+> - **interactive** — flag the conflict to the user and refer to `references/spring-compat-mode-support.md` for resolution options.
+> - **autonomous** — do not prompt; record the conflict under `unresolved_issues:` (severity ERROR) and continue, per SKILL.md → EXECUTION MODE.
+
+Read `execution.mode` from `migration-spec.yaml`; this module otherwise applies deterministic property
+mappings and requires no user prompt in either mode.
 
 ---
 

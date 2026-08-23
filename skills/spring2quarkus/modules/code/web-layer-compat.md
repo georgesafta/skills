@@ -38,8 +38,14 @@ metadata:
 | Multiple `@RestControllerAdvice` classes | ❌ Hard limit — only the **first** one discovered is registered; extras are silently ignored |
 
 > **Minimum Quarkus version:** `quarkus-spring-web` is available since **0.21.0**.
-> If the target version in `migration-spec.yaml` is older than this minimum, flag the conflict to
-> the user and refer to `references/spring-compat-mode-support.md` for resolution options.
+> If the target version in `migration-spec.yaml` is older than this minimum:
+> - **interactive** — flag the conflict to the user and refer to `references/spring-compat-mode-support.md` for resolution options.
+> - **autonomous** — do not prompt; record the conflict under `unresolved_issues:` (severity ERROR) and continue, per SKILL.md → EXECUTION MODE.
+
+> **Execution mode:** Read `execution.mode` from `migration-spec.yaml`. This module's per-class handling in
+> Step 3 is deterministic (JSON → `@RestController`; views → `@Path` + Qute) and requires no user prompt in
+> either mode. Where a class cannot be classified, record it under `unresolved_issues:` in autonomous mode
+> (a WARNING in the report in interactive mode).
 
 ---
 

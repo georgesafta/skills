@@ -15,6 +15,13 @@ metadata:
 > `migration_strategy.repository_layer` is `panache-repository` or `hibernate-orm-standard`.
 > Entity migration rules and database schema mapping are in the entry-point file — read those first.
 
+> **Execution mode:** This module applies deterministic entity and repository transformations and
+> contains no user decision gates. It reads `execution.mode` from `migration-spec.yaml` only for
+> error handling: on a compile failure it delegates to
+> [`modules/testing/compile-fix.md`](../testing/compile-fix.md) (3 retries per file); if still
+> failing, **`interactive`** pauses and asks the user, **`autonomous`** records the failure under
+> `unresolved_issues:` and continues — no prompts in either path.
+
 ## Overview
 
 Repositories are fully rewritten from Spring Data JPA interfaces to either:

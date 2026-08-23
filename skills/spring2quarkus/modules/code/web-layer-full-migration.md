@@ -17,6 +17,13 @@ metadata:
 > than `spring-web-compat`.
 > Output file location and inputs are defined in the entry-point file — read those first.
 
+> **Execution mode:** This module applies deterministic annotation and import transformations and
+> contains no user decision gates. It reads `execution.mode` from `migration-spec.yaml` only for
+> error handling: on a compile failure it delegates to
+> [`modules/testing/compile-fix.md`](../testing/compile-fix.md) (3 retries per file); if still
+> failing, **`interactive`** pauses and asks the user, **`autonomous`** records the failure under
+> `unresolved_issues:` and continues — no prompts in either path.
+
 ## Overview
 
 All Spring MVC annotations are replaced with their JAX-RS / Quarkus equivalents. No compat bridge
@@ -424,12 +431,17 @@ Fix any compilation errors before proceeding.
 
 ## Error Handling
 
-On compile errors:
-1. Capture error details
-2. Attempt automatic fix (missing imports, wrong annotation placement, etc.)
-3. If unresolved after 2 attempts, mark the file for manual review
-4. Continue with remaining files
-5. Report all issues in the migration report
+On compile errors, delegate immediately to [`modules/testing/compile-fix.md`](../testing/compile-fix.md)
+with the error context. The compile-fix agent applies up to **3 retries per file**
+(`approval_policy.max_compile_fix_retries_per_file`) and then acts according to
+`execution.mode`:
+
+- **`interactive`** — asks the user whether to continue with the remaining files or stop.
+- **`autonomous`** — records the unfixable file under `unresolved_issues:` in
+  `migration-spec.yaml` (phase `8-web`, severity ERROR) and continues automatically.
+
+After the compile-fix agent returns, continue with the remaining controller files.
+Report all issues (fixed and unresolved) in the migration report.
 
 ---
 

@@ -32,9 +32,9 @@ Automatically fix compilation errors introduced during migration.
    - Method signature issues
 4. Apply automatic fixes
 5. Retry compilation (max 3 attempts per file)
-6. If an error still fails after 3 attempts → emit the `MANUAL_REVIEW_REQUIRED` block (see below), then act according to mode:
+6. If an error still fails after 3 attempts → emit the `MANUAL_REVIEW_REQUIRED` block (see below), then act according to the execution `mode` (read from `migration-spec.yaml` → `execution.mode`; see SKILL.md → EXECUTION MODE):
    - **`interactive`** — ask the user: *"I was unable to automatically fix `File.java`. Would you like me to continue fixing the remaining files, or stop here?"* Wait for the response before proceeding.
-   - **`autonomous`** — log the failure internally and continue automatically to the next file. Do **not** pause or ask. All failures will be surfaced in the final Migration Report.
+   - **`autonomous`** — do **not** pause or ask. Record the failure under `unresolved_issues:` in `migration-spec.yaml` (phase, file, `attempted_fixes: 3`, `severity: ERROR`) and continue automatically to the next file. All failures are surfaced in the final Migration Report.
 7. Generate compile-fix-report.json
 
 

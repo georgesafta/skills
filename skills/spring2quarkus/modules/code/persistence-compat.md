@@ -21,8 +21,14 @@ their `JpaRepository<E, ID>` declaration — no rewrite to Panache is needed.
 
 > **Minimum Quarkus version:** `quarkus-spring-data-jpa` is available since **0.23.0**.
 > `quarkus-spring-tx` (optional, for keeping Spring `@Transactional` imports) requires **3.37.0**.
-> If the target version in migration-spec.yaml is older than these minimums, flag the conflict to the
-> user and refer to `references/spring-compat-mode-support.md` for resolution options.
+> If the target version in migration-spec.yaml is older than these minimums:
+> - **interactive** — flag the conflict to the user and refer to `references/spring-compat-mode-support.md` for resolution options.
+> - **autonomous** — do not prompt; record the conflict under `unresolved_issues:` (severity ERROR) and continue with the affected bridge dropped, per SKILL.md → EXECUTION MODE.
+
+> **Execution mode:** This module contains discretionary "choose one option" steps. Read `execution.mode`
+> from `migration-spec.yaml`. In **interactive** mode, present the options as written. In **autonomous**
+> mode, do NOT ask — pick the option marked *recommended* (or the mode-specific default called out at that
+> step) and record the choice + one-line rationale in the spec's `decisions:` section.
 
 ---
 
@@ -77,7 +83,8 @@ Read the `repositories` list from `migration-spec.yaml`. For each repository fil
 ## Step 3 — Fix `@Transactional` imports in entity and repository files
 
 Spring's `org.springframework.transaction.annotation.Transactional` is **not** bridged by
-`quarkus-spring-data-jpa`. Choose one option:
+`quarkus-spring-data-jpa`. Choose one option (autonomous default: **Option A**, unless the target Quarkus
+version is < 3.37.0 in which case Option A is the only valid choice anyway):
 
 **Option A — Migrate import (recommended for clean code):**
 

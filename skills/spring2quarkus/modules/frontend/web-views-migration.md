@@ -40,15 +40,20 @@ Apply rules from transformation_rules.md for view layer migration.
 
 ## Detection and Strategy Selection
 
-### Step 1 — Read user preference from migration-spec.yaml
+### Step 1 — Read the resolved view strategy from migration-spec.yaml
 
-Read `migration_strategy.view_layer` from `migration-spec.yaml`:
+Read `migration_strategy.view_layer` and `execution.mode` from `migration-spec.yaml`:
 
 | Value | Meaning |
 |---|---|
 | `qute` | Migrate all views to Qute — skip file-count heuristic |
 | `myfaces` | Maintain JSF with Quarkus MyFaces — skip file-count heuristic |
 | `auto` or `null` | Fall back to file-count heuristic (Step 2) |
+
+`view_layer` was resolved by the planning agent — user-chosen in **interactive** mode, agent-selected in
+**autonomous** mode. **This module never prompts the user in either mode**: an `auto`/`null` value is
+resolved by the file-count heuristic below, not by asking. In autonomous mode, record the resolved
+technology + reason in the spec's `decisions:` section so the final report shows what was chosen.
 
 ### Step 2 — Count view files (only when view_layer is `auto` or `null`)
 
