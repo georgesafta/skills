@@ -65,7 +65,7 @@ public class DatabaseMigrationValidator {
 
             // Get database type
             Map<String, Object> database = (Map<String, Object>) spec.get("database");
-            dbType = database != null ? (String) database.getOrDefault("type", "h2") : "h2";
+            dbType = database != null ? (String) database.getOrDefault("product", "h2") : "h2";
             System.out.println("[INFO] Database type: " + dbType + "\n");
 
             // Detect Flyway / Liquibase — skip import.sql rules if present

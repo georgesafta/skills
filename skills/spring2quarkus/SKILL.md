@@ -305,7 +305,7 @@ Agent reads migration-spec.yaml and creates the target Quarkus project skeleton.
 Only include extensions that match detected_features in migration-spec.yaml.
 
 After completion:
-1. Run `mvn clean package -DskipTests` to verify compilation and build
+1. Run `mvn clean compile` to verify compilation
 2. Run validator:
 ```bash
 cd validators/java
@@ -685,14 +685,16 @@ Maintain migration-context.json updated after every phase:
     "migrationSpec":      null
   },
   "phaseReports": {
-    "1-discovery":   null,
-    "2-planning":    null,
-    "5-persistence": null,
-    "6-service":     null,
-    "7-messaging":   null,
-    "8-web":         null,
-    "9-config":      null,
-    "11-validation": null
+    "1-discovery":        null,
+    "2-planning":         null,
+    "3-project-bootstrap": null,
+    "4-database":         null,
+    "5-persistence":      null,
+    "6-service":          null,
+    "7-messaging":        null,
+    "8-web":              null,
+    "9-config":           null,
+    "11-validation":      null
   }
 }
 ```

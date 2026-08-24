@@ -242,28 +242,55 @@ phases:
       - Write migration-context.json
 
   - phase: 1
-    name: "Project Setup & Bootstrap"
-    agent: "agents/03-project-bootstrap.prompt.md"
+    name: "Discovery & Analysis"
+    agent: "modules/discovery/discovery.md"
+    enabled: true
+    tasks:
+      - Scan source project structure
+      - Detect frameworks, features, and dependencies
+      - Write repo-metadata.json and dependency-analysis.yaml
+
+  - phase: 2
+    name: "Migration Planning"
+    agent: "modules/planning/migration-planning.md"
+    enabled: true
+    tasks:
+      - Analyse discovery output
+      - Choose migration mode (full-migration | spring-compatibility)
+      - Write migration-spec.yaml
+
+  - phase: 3
+    name: "Project Bootstrap"
+    agent: "modules/build/project-bootstrap.md"
     enabled: true
     tasks:
       - Create pom.xml with Quarkus BOM
       - Create application.properties skeleton
       - Set up directory structure
+      - Run mvn clean compile
+
+  - phase: 4
+    name: "Database Migration"
+    agent: "modules/code/database-and-persistence-migration.md"
+    enabled: null              # set to true when detected_features.spring_data_jpa OR sql files present
+    tasks:
+      - Convert datasource properties
+      - Migrate schema/data SQL files (import.sql or Flyway/Liquibase)
+      - Validate datasource config and JDBC driver
 
   - phase: 5
     name: "Persistence Migration"
-    agent: "agents/05-persistence-migration.prompt.md"
-    enabled: true
+    agent: "modules/code/database-and-persistence-migration.md"
+    enabled: null              # set to true when detected_features.spring_data_jpa is true
     tasks:
       - Migrate @Entity classes
       - Convert Spring Data repositories
       - Update @Transactional imports
-      - Convert application.properties datasource config
 
   - phase: 6
     name: "Service Layer Migration"
-    agent: "agents/06-service-migration.prompt.md"
-    enabled: null
+    agent: "modules/code/service-migration.md"
+    enabled: null              # set to true when service classes detected
     tasks:
       - Convert @Service to @ApplicationScoped
       - Replace @Autowired with @Inject
@@ -272,8 +299,8 @@ phases:
 
   - phase: 7
     name: "Messaging Migration"
-    agent: "agents/07-messaging-migration.prompt.md"
-    enabled: null
+    agent: "modules/code/messaging-migration.md"
+    enabled: null              # set to true when spring_kafka or spring_rabbitmq detected
     tasks:
       - Convert @KafkaListener to @Incoming
       - Convert KafkaTemplate to @Channel Emitter
@@ -281,8 +308,8 @@ phases:
 
   - phase: 8
     name: "Web Layer Migration"
-    agent: "agents/08-web-layer-migration.prompt.md"
-    enabled: true
+    agent: "modules/code/web-layer-migration.md"
+    enabled: null              # set to true when spring_web detected
     tasks:
       - Convert @RestController to @Path
       - Convert HTTP method annotations
@@ -291,7 +318,7 @@ phases:
 
   - phase: 9
     name: "Configuration Migration"
-    agent: "agents/09-configuration.prompt.md"
+    agent: "modules/configuration.md"
     enabled: true
     tasks:
       - Convert application.properties
@@ -301,7 +328,7 @@ phases:
 
   - phase: 11
     name: "Validation"
-    agent: "agents/11-validation.prompt.md"
+    agent: "modules/testing/validation.md"
     enabled: true
     tasks:
       - Run mvn compile
