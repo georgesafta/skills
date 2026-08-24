@@ -385,8 +385,7 @@ java -jar target/migration-validator-1.0.0.jar validate config \
 ### migration-context.json
 Tracks migration progress and state. Contains:
 - Current phase
-- Completed phases
-- Approved phases
+- Completed phases (user-approved phases are those in this list)
 - Paths to key artifacts
 
 ### migration-spec.yaml

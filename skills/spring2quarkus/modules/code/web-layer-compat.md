@@ -262,3 +262,7 @@ transformations:
       status: DONE
       notes: "5 endpoints kept as-is; RestTemplate migrated to JAX-RS Client"
 ```
+
+Then update `migration-metadata/migration-context.json`:
+- Add `"8-web"` to `completedPhases`
+- Set `phaseReports["8-web"]` to `"migration-reports/phase-08-web-migration.json"`

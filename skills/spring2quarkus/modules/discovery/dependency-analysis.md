@@ -90,4 +90,6 @@ additional_dependencies:
   - mapstruct
 ```
 
-Path recorded in: `migration-metadata/migration-context.json` → `paths.dependencyAnalysis`
+When writing `migration-metadata/migration-context.json`:
+- Set `paths.dependencyAnalysis` to the path of `dependency-analysis.yaml`
+- Add `"1b-dependency-analysis"` to `completedPhases`

@@ -207,3 +207,8 @@ Example:
   ],
   "package_status": "PASS"
 }
+```
+
+Then update `migration-metadata/migration-context.json`:
+- Add `"3-project-bootstrap"` to `completedPhases`
+- Set `phaseReports["3-project-bootstrap"]` to `"migration-reports/phase-03-project-bootstrap.json"`

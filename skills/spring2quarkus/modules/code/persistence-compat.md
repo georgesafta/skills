@@ -261,6 +261,10 @@ Write `<quarkus_target_dir>/migration-reports/phase-05-persistence-migration.jso
 
 Then update the `transformations.persistence-migration` section in `migration-spec.yaml`.
 
+Then update `migration-metadata/migration-context.json`:
+- Add `"5-persistence"` to `completedPhases`
+- Set `phaseReports["5-persistence"]` to `"migration-reports/phase-05-persistence-migration.json"`
+
 ---
 
 ## Validation Gate

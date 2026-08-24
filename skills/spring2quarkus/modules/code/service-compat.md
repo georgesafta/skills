@@ -300,3 +300,7 @@ Write `<quarkus_target_dir>/migration-reports/phase-06-service-migration.json`:
 ```
 
 Then update the `transformations.service-migration` section in `migration-spec.yaml`.
+
+Then update `migration-metadata/migration-context.json`:
+- Add `"6-service"` to `completedPhases`
+- Set `phaseReports["6-service"]` to `"migration-reports/phase-06-service-migration.json"`

@@ -271,3 +271,7 @@ Write `<quarkus_target_dir>/migration-reports/phase-09-configuration-migration.j
   "package_status": "PASS"
 }
 ```
+
+Then update `migration-metadata/migration-context.json`:
+- Add `"9-config"` to `completedPhases`
+- Set `phaseReports["9-config"]` to `"migration-reports/phase-09-configuration-migration.json"`

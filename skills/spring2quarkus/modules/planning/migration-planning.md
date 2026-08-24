@@ -249,7 +249,9 @@ Must include:
 - `migration_strategy.rest_framework` set (auto-set when compat; user-chosen when full migration)
 - `migration_strategy.security_approach` set (if security detected and full migration chosen)
 
-Path recorded in: `migration-metadata/migration-context.json` → `paths.migrationSpec`
+When writing `migration-metadata/migration-context.json`:
+- Set `paths.migrationSpec` to the path of `migration-spec.yaml`
+- Add `"2-planning"` to `completedPhases`
 
 ## Validation
 

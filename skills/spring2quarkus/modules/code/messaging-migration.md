@@ -404,3 +404,7 @@ This report should be created in the target Quarkus project at `<quarkus_target_
 ```
 
 Update migration-spec.yaml transformations.messaging-migration section.
+
+Then update `migration-metadata/migration-context.json`:
+- Add `"7-messaging"` to `completedPhases`
+- Set `phaseReports["7-messaging"]` to `"migration-reports/phase-07-messaging-migration.json"`

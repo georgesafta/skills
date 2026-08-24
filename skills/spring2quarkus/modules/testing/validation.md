@@ -167,3 +167,8 @@ This report should be created in the target Quarkus project at `<quarkus_target_
   "issues": [],
   "recommendations": []
 }
+```
+
+Then update `migration-metadata/migration-context.json`:
+- Add `"11-validation"` to `completedPhases`
+- Set `phaseReports["11-validation"]` to `"migration-reports/phase-11-validation.json"`

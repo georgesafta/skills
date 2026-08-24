@@ -419,6 +419,10 @@ Write `<quarkus_target_dir>/migration-reports/phase-08-web-migration.json`:
 }
 ```
 
+Then update `migration-metadata/migration-context.json`:
+- Add `"8-web"` to `completedPhases`
+- Set `phaseReports["8-web"]` to `"migration-reports/phase-08-web-migration.json"`
+
 Then update `migration-spec.yaml` transformations.web-migration:
 
 ```yaml

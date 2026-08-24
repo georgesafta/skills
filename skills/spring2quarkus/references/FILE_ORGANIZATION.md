@@ -206,7 +206,6 @@ The orchestrator maintains `<quarkus_target_dir>/migration-metadata/migration-co
   "targetRepo": "/path/to/quarkus/project",
   "currentPhase": "phase-06-service",
   "completedPhases": ["phase-01-discovery", "phase-02-planning", ...],
-  "approvedPhases": ["phase-01-discovery", "phase-02-planning", ...],
   "paths": {
     "repoMetadata": "migration-metadata/repo-metadata.json",
     "dependencyAnalysis": "migration-metadata/dependency-analysis.yaml",

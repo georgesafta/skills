@@ -512,6 +512,13 @@ java -jar target/migration-validator-1.0.0.jar validate database \
 - [ ] Profile-specific datasource overrides converted to `%prod.`/`%dev.` Quarkus prefixes
 - [ ] Database migration report generated
 - [ ] **Validator passes all checks (exit code 0)**
+- [ ] migration-context.json updated
+
+## Phase 4 Context Update
+
+After the report is written and the validator passes, update `migration-metadata/migration-context.json`:
+- Add `"4-database"` to `completedPhases`
+- Set `phaseReports["4-database"]` to `"migration-reports/phase-04-database-migration.json"`
 
 ---
 

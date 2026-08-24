@@ -21,7 +21,7 @@ Before taking any action:
 1. Read this file completely
 2. Read `references/transformation_rules.md` — understand HOW code is transformed
 3. Read `references/FILE_ORGANIZATION.md` — understand the standard directory structure for migration artifacts
-4. Check if `migration-context.json` exists in the workspace — if yes, restore state and resume from last approved phase
+4. Check if `migration-context.json` exists in the workspace — if yes, restore state and resume from the last completed phase
 5. Otherwise begin from Phase 0
 
 ---
@@ -150,7 +150,7 @@ Kill command:
 
 Write `migration-metadata/migration-context.json` with fields:
   generatedAt, sourceRepo, targetRepo, javaVersion, mavenVersion,
-  currentPhase="0-environment-prep", completedPhases=[], approvedPhases=[], phaseReports={},
+  currentPhase="0-environment-prep", completedPhases=[], phaseReports={},
   paths: {
     repoMetadata: null,
     dependencyAnalysis: null,
@@ -656,11 +656,11 @@ Aggregates all phase reports and writes migration-summary.md.
  ⛔ WAITING FOR YOUR REPLY. No further action until you say yes.
 ```
 
-On `yes`  — update migration-context.json (approvedPhases), then start next phase.
+On `yes`  — advance `currentPhase` to the next phase in migration-context.json, then start next phase.
 On `no`   — ask what to fix, re-run the phase or apply a targeted fix, then re-print the block.
 On `show-details` — print the full phase report JSON, then re-print the block and wait again.
 
-**Phase gates are not optional. A phase is not approved until the user explicitly says `yes`.**
+**The `completedPhases` entry is written by the sub-agent as soon as its work is done — before this block is shown. User `yes` only controls whether the next phase starts.**
 
 ---
 
@@ -678,7 +678,6 @@ Maintain migration-context.json updated after every phase:
   "mavenVersion": "<version>",
   "currentPhase": "<phase-id>",
   "completedPhases": [],
-  "approvedPhases": [],
   "paths": {
     "repoMetadata":       null,
     "dependencyAnalysis": null,

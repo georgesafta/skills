@@ -181,7 +181,9 @@ Example structure:
 }
 ```
 
-Path recorded in: `migration-metadata/migration-context.json` → `paths.repoMetadata` (absolute path).
+When writing `migration-metadata/migration-context.json`:
+- Set `paths.repoMetadata` to the absolute path of `repo-metadata.json`
+- Add `"1-discovery"` to `completedPhases`
 
 ## Validation
 
@@ -189,4 +191,4 @@ Before completing, verify:
 1. repo-metadata.json exists
 2. All detected_features flags are boolean
 3. Component counts match actual files
-4. `migration-metadata/migration-context.json` updated with path
+4. `migration-metadata/migration-context.json` updated with path and completedPhases entry
