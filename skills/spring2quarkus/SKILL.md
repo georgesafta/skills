@@ -195,7 +195,7 @@ Inspect the project to determine the gate result; do not rely on blind grep comm
 | [Prerequisite: JDK](modules/prerequisite/jdk.md) | Java >= 17 on PATH | **ALWAYS** — stop migration if missing or < 17 |
 | [Prerequisite: Maven](modules/prerequisite/maven.md) | `pom.xml` present; no `build.gradle(.kts)` | **PASS** if Maven project; **SKIP** if Gradle project; **FAIL** if no build file found |
 | [Prerequisite: Gradle](modules/prerequisite/gradle.md) | `build.gradle(.kts)` present | **PASS** if Gradle project; **SKIP** if Maven project |
-| [Phase 0 — Environment](orchestrator) | Toolchain verified, paths confirmed, mode/strategy resolved | **ALWAYS** |
+| Phase 0 — Environment | Toolchain verified, paths confirmed, mode/strategy resolved | **ALWAYS** |
 | [Phase 1 — Discovery](modules/discovery/discovery.md) | Source directory contains a build file | **ALWAYS** |
 | [Phase 1b — Dependency Analysis](modules/discovery/dependency-analysis.md) | Runs parallel with Phase 1 | **ALWAYS** |
 | [Phase 2 — Planning](modules/planning/migration-planning.md) | `repo-metadata.json` + `dependency-analysis.yaml` written | **ALWAYS** |
@@ -588,6 +588,24 @@ When gate is **PASS**:
 
 **PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 11 until user says `yes`. Autonomous: write the phase report and proceed to Phase 11.**
 
+---
+
+## PHASE 11 — VALIDATION
+
+Delegate to modules/testing/validation.md.
+Validates that the migrated Quarkus application compiles, packages, and runs correctly.
+On failure → delegate to modules/testing/compile-fix.md (up to 3 retries per file).
+
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Final Reporting until user says `yes`. Autonomous: write the phase report and proceed to Final Reporting.**
+
+---
+
+## FINAL REPORTING
+
+Delegate to modules/reporting.md.
+Aggregates all phase reports and writes migration-summary.md.
+
+---
 
 ## VALIDATION GATES
 
@@ -623,7 +641,6 @@ All validation reports are stored in the target Quarkus project:
 | Web Layer Migration | `RestValidator.java` | REST endpoints (method, path, parameters), response/request types, media types (produces/consumes), security annotations, exception mappers | Missing endpoints, changed response/request types, parameter mismatches, removed security annotations, missing exception mappers |
 | Web Views Migration | `UIValidator.java` | View technology migration (JSP/JSF/Thymeleaf/FreeMarker → Qute or MyFaces), template syntax, managed beans to CDI, static resources, dependencies, configuration | Missing view files, unmigrated managed beans, missing dependencies (quarkus-rest-qute, quarkus-primefaces, etc.), incorrect template syntax, Spring-specific code remaining, compilation failures |
 | Configuration Migration | `ConfigValidator.java` | application.properties migration, @Configuration to @Produces | Missing critical properties, incorrect property transformations |
-| Validation | `SmokeTestValidator.java` (TBD) | Functional testing of running application | Application startup failures, endpoint errors, database connectivity |
 
 ### Validation Gate Workflow
 
@@ -733,21 +750,6 @@ This prevents:
 Process above): the orchestrator attempts prompt-driven fixes, and if they are exhausted it records the
 failure under `unresolved_issues:` and continues rather than halting. This keeps an unattended run moving
 while still surfacing every unresolved problem in the final report.
-
-## PHASE 11 — VALIDATION
-
-Delegate to modules/testing/validation.md.
-Runs `validate smoke-test` — functional testing on the running Quarkus application. This is the final validation before reporting.
-On failure → delegate to modules/testing/compile-fix.md (up to 3 retries per file).
-
-**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Final Reporting until user says `yes`. Autonomous: write the phase report and proceed to Final Reporting.**
-
----
-
-## FINAL REPORTING
-
-Delegate to modules/reporting.md.
-Aggregates all phase reports and writes migration-summary.md.
 
 ---
 
