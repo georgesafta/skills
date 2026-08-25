@@ -65,7 +65,7 @@ Create the Quarkus project structure with appropriate extensions based on migrat
 7. Run `mvn clean compile` to verify setup and ensure compilation is successful (no application source exists yet at this phase — compile is sufficient)
 8. **Run validator and fix errors iteratively (CRITICAL):**
    ```bash
-   # Build validator if needed
+   # Build validator if needed. The path is relative to where the skill is located
    cd validators/java
    mvn clean package -DskipTests -q
    

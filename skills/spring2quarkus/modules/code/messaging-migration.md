@@ -332,7 +332,7 @@ After completing all transformations, **MANDATORY VALIDATION** must be performed
 **Run validator after completing messaging migration:**
 
 ```bash
-# Build validator if needed
+# Build validator if needed. The path is relative to where the skill is located
 cd validators/java
 mvn clean package -DskipTests -q
 

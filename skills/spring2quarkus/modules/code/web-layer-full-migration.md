@@ -448,7 +448,7 @@ Report all issues (fixed and unresolved) in the migration report.
 ## Validation Gate
 
 ```bash
-# Build validator if needed
+# Build validator if needed. The path is relative to where the skill is located
 cd validators/java
 mvn clean package -DskipTests -q
 

@@ -489,7 +489,7 @@ public class SampleDataGenerator {
 ## Validation Gate
 
 ```bash
-# Build validator if needed
+# Build validator if needed. The path is relative to where the skill is located
 cd validators/java && mvn clean package -DskipTests -q
 
 java -jar target/migration-validator-1.0.0.jar validate services \

@@ -172,7 +172,7 @@ Fix any compilation errors before proceeding.
 ## Validation Gate
 
 ```bash
-# Build validator if needed
+# Build validator if needed. The path is relative to where the skill is located
 cd validators/java && mvn clean package -DskipTests -q
 
 # Extract config metadata (optional — validator can read application.properties directly)

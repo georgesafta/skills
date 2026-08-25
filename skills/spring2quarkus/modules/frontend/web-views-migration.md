@@ -110,7 +110,7 @@ Apply in priority order — **user preference always wins over file count**:
 6. **Run compilation**: `mvn clean package -DskipTests` to ensure compilation is successful
 7. **Run UI migration validator**:
 ```bash
-# Build validator if needed
+# Build validator if needed. The path is relative to where the skill is located
 cd validators/java
 mvn clean package -DskipTests -q
 
@@ -139,7 +139,7 @@ After completing all transformations, **MANDATORY VALIDATION** must be performed
 Execute the UI migration validator to verify the migration:
 
 ```bash
-# Build validator if needed
+# Build validator if needed. The path is relative to where the skill is located
 cd validators/java
 mvn clean package -DskipTests -q
 
