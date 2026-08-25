@@ -17,6 +17,7 @@ This document defines the standard file organization structure for Spring to Qua
 │   ├── phase-08-web-migration.json
 │   ├── phase-08b-web-views-migration.json
 │   ├── phase-09-configuration-migration.json
+│   ├── phase-10-testing-migration.json
 │   ├── compile-fix-report.json
 │   └── phase-11-validation.json
 │
@@ -76,7 +77,8 @@ All phase-specific JSON reports documenting what was migrated:
 - **phase-08-web-migration.json** - REST controller migration (Phase 8)
 - **phase-08b-web-views-migration.json** - Web views migration (Phase 8b, if applicable)
 - **phase-09-configuration-migration.json** - Configuration migration (Phase 9)
-- **compile-fix-report.json** - Compilation fixes (Phase 10, as needed)
+- **phase-10-testing-migration.json** - Test migration results (Phase 10, if applicable)
+- **compile-fix-report.json** - Compilation fixes (on demand, any phase)
 - **phase-11-validation.json** - Final validation results (Phase 11)
 
 **Rationale**: Grouped together for easy review of migration details per phase
@@ -166,6 +168,11 @@ Standard Quarkus project structure (created by Phase 3 and subsequent phases):
 - `<quarkus_target_dir>/Makefile`
 - `<quarkus_target_dir>/README.md`
 - `<quarkus_target_dir>/migration-reports/phase-09-configuration-migration.json`
+
+### Testing Migration Agent (Phase 10)
+**Outputs** (only when gate PASSES):
+- `<quarkus_target_dir>/src/test/java/**/*Test.java`
+- `<quarkus_target_dir>/migration-reports/phase-10-testing-migration.json`
 
 ### Validation Agent (Phase 11)
 **Outputs**:
