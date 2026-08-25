@@ -36,7 +36,7 @@ public class RepositoryExtractor {
 
     private static final List<String> SPRING_REPO_SUPERS = Arrays.asList(
             "JpaRepository", "CrudRepository", "PagingAndSortingRepository",
-            "ReactiveCrudRepository", "ReactiveMongoRepository");
+            "ReactiveCrudRepository", "ReactiveMongoRepository", "Repository");
 
     private static final List<String> PANACHE_REPO_INTERFACES = Arrays.asList(
             "PanacheRepository", "PanacheRepositoryBase");
