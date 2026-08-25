@@ -335,6 +335,17 @@ phases:
       - Convert parameter annotations
       - Handle exception handlers
 
+  - phase: "8b"
+    name: "Web Views Migration"
+    agent: "modules/frontend/web-views-migration.md"
+    enabled: null              # set to true when JSP/JSF/Thymeleaf/FreeMarker templates detected
+    tasks:
+      - Count view files to determine strategy
+      - Delegate to specialized frontend agent (jsp-qute / jsf-qute / jsf-myfaces / thymeleaf-qute / freemarker-qute)
+      - Migrate managed beans to CDI
+      - Update controllers for chosen view technology
+      - Run UI migration validator
+
   - phase: 9
     name: "Configuration Migration"
     agent: "modules/configuration.md"
@@ -344,6 +355,17 @@ phases:
       - Convert @Configuration to CDI @Produces
       - Create lifecycle hooks
       - Create Dockerfile
+
+  - phase: 10
+    name: "Testing Migration"
+    agent: "modules/testing/testing.md"
+    enabled: null              # set to true when @SpringBootTest/@WebMvcTest/@MockBean found in src/test/
+    tasks:
+      - Replace @SpringBootTest with @QuarkusTest
+      - Replace @MockBean with @InjectMock
+      - Replace TestRestTemplate with REST Assured
+      - Replace @ActiveProfiles with @TestProfile
+      - Run mvn package (with tests)
 
   - phase: 11
     name: "Validation"

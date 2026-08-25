@@ -21,8 +21,13 @@ Before taking any action:
 1. Read this file completely
 2. Read `references/transformation_rules.md` — understand HOW code is transformed
 3. Read `references/FILE_ORGANIZATION.md` — understand the standard directory structure for migration artifacts
-4. Check if `migration-context.json` exists in the workspace — if yes, restore state and resume from the last completed phase
-5. Otherwise begin from Phase 0
+4. **Run all prerequisite checks — always, on every start (fresh or resumed). These are hard blockers; nothing proceeds past a FAIL.**
+   Run in order — stop immediately if any check returns FAIL:
+   - [modules/prerequisite/jdk.md](modules/prerequisite/jdk.md) — always runs; no skip condition
+   - [modules/prerequisite/maven.md](modules/prerequisite/maven.md) — runs if `pom.xml` detected; SKIP if Gradle project
+   - [modules/prerequisite/gradle.md](modules/prerequisite/gradle.md) — runs if `build.gradle(.kts)` detected; SKIP if Maven project
+5. Check if `migration-context.json` exists in the workspace — if yes, restore state and resume from the last completed phase
+6. Otherwise begin from Phase 0
 
 ---
 
@@ -86,6 +91,7 @@ Every downstream phase and sub-module reads these resolved values — it must ne
 | Web Layer Migration | modules/code/web-layer-migration.md | migration-spec.yaml + controller files | migration-reports/phase-08-web-migration.json |
 | Web Views Migration | modules/frontend/web-views-migration.md | migration-spec.yaml + view files + managed beans | migration-reports/phase-08b-web-views-migration.json |
 | Configuration Migration | modules/configuration.md | migration-spec.yaml + config files | migration-reports/phase-09-configuration-migration.json |
+| Testing Migration | modules/testing/testing.md | migration-spec.yaml + test sources | migration-reports/phase-10-testing-migration.json |
 | Compile Fix (any phase) | modules/testing/compile-fix.md | compile errors (any phase) | migration-reports/compile-fix-report.json |
 | Validation | modules/testing/validation.md | target project | migration-reports/phase-11-validation.json |
 | Reporting | modules/reporting.md | all phase reports | migration-summary.md (root) |
@@ -167,6 +173,7 @@ Phase 7  — Messaging Migration          -> modules/code/messaging-migration.md
 Phase 8  — Web Layer Migration          -> modules/code/web-layer-migration.md
 Phase 8b — Web Views Migration          -> modules/frontend/web-views-migration.md
 Phase 9  — Configuration Migration      -> modules/configuration.md
+Phase 10 — Testing Migration            -> modules/testing/testing.md
 Phase 11 — Validation                   -> modules/testing/validation.md
 Final    — Reporting                    -> modules/reporting.md
 
@@ -174,6 +181,35 @@ Final    — Reporting                    -> modules/reporting.md
 ```
 
 After EVERY phase: present a summary. In interactive mode, request explicit user approval before proceeding. In autonomous mode, write the phase report and proceed automatically.
+
+### Decision Gate Table
+
+Evaluate each phase before executing it. Log every evaluation using:
+`Gate result: <STATUS> — <CONDITION_EVALUATED>`
+
+A phase executes only when its gate is **PASS** or **ALWAYS**. Never skip silently — always log the reason.
+Inspect the project to determine the gate result; do not rely on blind grep commands.
+
+| Phase | Gate Check | Gate Result |
+|---|---|---|
+| [Prerequisite: JDK](modules/prerequisite/jdk.md) | Java >= 17 on PATH | **ALWAYS** — stop migration if missing or < 17 |
+| [Prerequisite: Maven](modules/prerequisite/maven.md) | `pom.xml` present; no `build.gradle(.kts)` | **PASS** if Maven project; **SKIP** if Gradle project; **FAIL** if no build file found |
+| [Prerequisite: Gradle](modules/prerequisite/gradle.md) | `build.gradle(.kts)` present | **PASS** if Gradle project; **SKIP** if Maven project |
+| [Phase 0 — Environment](orchestrator) | Toolchain verified, paths confirmed, mode/strategy resolved | **ALWAYS** |
+| [Phase 1 — Discovery](modules/discovery/discovery.md) | Source directory contains a build file | **ALWAYS** |
+| [Phase 1b — Dependency Analysis](modules/discovery/dependency-analysis.md) | Runs parallel with Phase 1 | **ALWAYS** |
+| [Phase 2 — Planning](modules/planning/migration-planning.md) | `repo-metadata.json` + `dependency-analysis.yaml` written | **ALWAYS** |
+| [Phase 3 — Bootstrap](modules/build/project-bootstrap.md) | Spring Boot build markers found | **ALWAYS** |
+| [Phase 4+5 — DB + Persistence](modules/code/database-and-persistence-migration.md) | `spring.datasource` config or `@Entity` classes in source | **PASS** if present; **SKIP** otherwise |
+| [Phase 6 — Service Layer](modules/code/service-migration.md) | `@Service`, `@Component`, or `@Repository` in source | **PASS** if present; **SKIP** otherwise |
+| [Phase 7 — Messaging](modules/code/messaging-migration.md) | `@KafkaListener`, `@RabbitListener`, or `@JmsListener` in source | **PASS** if present; **SKIP** otherwise |
+| [Phase 8 — Web Layer](modules/code/web-layer-migration.md) | `@RestController`, `@Controller`, or `@RequestMapping` in source | **ALWAYS** |
+| [Phase 8b — Web Views](modules/frontend/web-views-migration.md) | JSP, JSF, Thymeleaf, or FreeMarker templates detected | **PASS** if view layer found; **SKIP** otherwise |
+| [Phase 9 — Configuration](modules/configuration.md) | `application.properties` or `application.yml` found | **ALWAYS** |
+| [Phase 10 — Testing](modules/testing/testing.md) | `@SpringBootTest`, `@WebMvcTest`, or `@MockBean` in `src/test/` | **PASS** if Spring tests found; **SKIP** otherwise |
+| [Phase 11 — Validation](modules/testing/validation.md) | All prior phases complete | **ALWAYS** |
+| [Final — Reporting](modules/reporting.md) | Phase 11 complete | **ALWAYS** |
+| [Compile Fix](modules/testing/compile-fix.md) | Compile error after any transformation phase | Triggered on demand — max 3 retries per file |
 
 ---
 
@@ -183,15 +219,14 @@ Orchestrator handles directly. Do not delegate.
 
 Steps:
 1. Kill running Spring Boot processes and any Quarkus dev-mode processes on ports 8080, 8081, 5005
-2. Verify Java >= 17 (java -version)
-3. Verify Maven >= 3.9 (mvn -version) or Gradle >= 8
-4. Confirm source and target directory paths
-5. **Create the target directory and metadata subdirectory** (must exist before any file is written):
+2. *(All prerequisite checks — JDK, Maven, Gradle — already ran in preamble step 4. Skipped here.)*
+3. Confirm source and target directory paths
+4. **Create the target directory and metadata subdirectory** (must exist before any file is written):
    ```bash
    mkdir -p <targetRepo>/migration-metadata
    ```
-6. Confirm modules/ directory is present and all module files are readable
-7. **Resolve execution `mode` and `strategy`** using the first-match-wins order in EXECUTION MODE
+5. Confirm modules/ directory is present and all module files are readable
+6. **Resolve execution `mode` and `strategy`** using the first-match-wins order in EXECUTION MODE
    (argument → `.quarkus-migration.yml` in the source root → default/decide). Log both resolved values
    and their sources. This must happen before the first phase gate below.
 
@@ -199,7 +234,8 @@ Kill command:
   lsof -ti:8080,8081,5005 | xargs kill -9 2>/dev/null || true
 
 Write `migration-metadata/migration-context.json` with fields:
-  generatedAt, sourceRepo, targetRepo, javaVersion, mavenVersion,
+  generatedAt, sourceRepo, targetRepo, javaVersion,
+  buildTool (maven|gradle), mavenVersion (null if Gradle), gradleVersion (null if Maven),
   mode, modeSource, strategy, strategySource,
   currentPhase="0-environment-prep", completedPhases=[], phaseReports={},
   paths: {
@@ -532,6 +568,24 @@ Delegate to modules/configuration.md.
 Produces: application.properties updates, Dockerfile, docker-compose.yml, README.md, lifecycle hooks.
 After transformation, run `mvn clean package -DskipTests` to ensure compilation is successful.
 
+**PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 10 until user says `yes`. Autonomous: write the phase report and proceed to Phase 10.**
+
+---
+
+## PHASE 10 — TESTING MIGRATION
+
+**Gate check:** Scan test sources (`src/test/`) for Spring test annotations.
+
+| Condition | Gate Result |
+|---|---|
+| `@SpringBootTest`, `@WebMvcTest`, or `@MockBean` found in test sources | **PASS** — delegate to [modules/testing/testing.md](modules/testing/testing.md) |
+| No Spring test annotations found in test sources | **SKIP** — log `phase-10: SKIPPED — no Spring test annotations found`, proceed to Phase 11 |
+
+When gate is **PASS**:
+- Delegate to modules/testing/testing.md
+- After transformation, run `mvn clean package` (includes tests) to confirm tests compile and pass
+- On compile error → delegate to modules/testing/compile-fix.md
+
 **PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Phase 11 until user says `yes`. Autonomous: write the phase report and proceed to Phase 11.**
 
 
@@ -680,16 +734,11 @@ Process above): the orchestrator attempts prompt-driven fixes, and if they are e
 failure under `unresolved_issues:` and continues rather than halting. This keeps an unattended run moving
 while still surfacing every unresolved problem in the final report.
 
-### Phase 11 Validation
-
-Phase 11 uses `validate smoke-test` which performs functional testing on the running Quarkus application. This is the final validation before reporting.
-
----
-
 ## PHASE 11 — VALIDATION
 
 Delegate to modules/testing/validation.md.
-On failure -> delegate to modules/testing/compile-fix.md (up to 3 retries per file).
+Runs `validate smoke-test` — functional testing on the running Quarkus application. This is the final validation before reporting.
+On failure → delegate to modules/testing/compile-fix.md (up to 3 retries per file).
 
 **PHASE GATE — interactive: HARD STOP, output the approval block, do NOT start Final Reporting until user says `yes`. Autonomous: write the phase report and proceed to Final Reporting.**
 
@@ -767,7 +816,9 @@ Maintain migration-context.json updated after every phase:
     "6-service":          null,
     "7-messaging":        null,
     "8-web":              null,
+    "8b-web-views":       null,
     "9-config":           null,
+    "10-testing":         null,
     "11-validation":      null
   }
 }
