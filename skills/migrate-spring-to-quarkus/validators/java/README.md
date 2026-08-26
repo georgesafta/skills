@@ -1,10 +1,6 @@
 # Spring to Quarkus Migration Validators (Java)
 
-Java-based validators for verifying Spring Boot to Quarkus migration correctness.
-
-## Overview
-
-These validators complement the Python validators and provide the same validation capabilities in Java. They are packaged as a unified CLI tool with Picocli for easy command-line usage.
+Java-based validators for verifying Spring Boot to Quarkus migration correctness. They are packaged as a unified CLI tool with Picocli for easy command-line usage.
 
 ## Building
 
@@ -43,8 +39,7 @@ java -jar target/migration-validator-1.0.0.jar validate project-setup \
 
 ## Available Validators
 
-### 1. project-setup
-**Phase 3: Project Bootstrap**
+### 1. Project-setup
 
 Validates Quarkus project structure, dependencies, and build configuration.
 
@@ -74,8 +69,7 @@ java -jar target/migration-validator-1.0.0.jar validate project-setup \
 - ✓ Directory structure (src/main/java, src/main/resources, etc.)
 - ✓ Maven compile succeeds
 
-### 2. database
-**Phase 4: Database Migration**
+### 2. Database
 
 Validates database configuration, import.sql, and JDBC setup.
 
@@ -94,7 +88,6 @@ java -jar target/migration-validator-1.0.0.jar validate database \
 ```
 
 ### 3. persistence
-**Phase 5: Persistence Migration**
 
 Validates JPA entity migration from Spring Data to Quarkus Panache/Hibernate ORM.
 
@@ -116,8 +109,7 @@ java -jar target/migration-validator-1.0.0.jar validate persistence \
   /path/to/migration-spec.yaml
 ```
 
-### 4. services
-**Phase 6: Service Layer Migration**
+### 4. Services
 
 Validates Spring @Service/@Component migration to CDI beans.
 
@@ -135,8 +127,7 @@ java -jar target/migration-validator-1.0.0.jar validate services \
   /path/to/migration-spec.yaml
 ```
 
-### 5. messaging
-**Phase 7: Messaging Migration**
+### 5. Messaging
 
 Validates Kafka/JMS/RabbitMQ migration to SmallRye Reactive Messaging.
 
@@ -158,8 +149,7 @@ java -jar target/migration-validator-1.0.0.jar validate messaging \
   /path/to/migration-spec.yaml
 ```
 
-### 6. rest
-**Phase 8: Web Layer Migration**
+### 6. Rest Endpoints
 
 Validates REST endpoint migration from Spring MVC to JAX-RS.
 
@@ -181,8 +171,7 @@ java -jar target/migration-validator-1.0.0.jar validate rest \
   /path/to/migration-spec.yaml
 ```
 
-### 7. ui
-**Phase 8b: UI Migration**
+### 7. FrontEnd
 
 Validates view technology migration (JSP/JSF/Thymeleaf/FreeMarker → Qute or MyFaces).
 
@@ -251,8 +240,7 @@ java -jar target/migration-validator-1.0.0.jar validate ui \
 - ✓ Source/target parity
 - ✓ Build compile succeeds
 
-### 8. config
-**Phase 9: Configuration Migration**
+### 8. Configuration
 
 Validates application.properties migration from Spring Boot to Quarkus.
 
