@@ -192,7 +192,7 @@ In **non-interactive mode**, apply defaults without asking:
 | 4 | Persistence strategy | `full-quarkus` + `spring_data_jpa` detected | `panache-active-record` |
 | 5 | REST framework | `full-quarkus` + `spring_web` detected | `quarkus-rest` |
 | 6 | Messaging transport | Messaging detected (`spring_kafka`, `spring_rabbitmq`, `spring_jms`) | Matching detected transport |
-| 7 | View technology | `view_layer` detected | `qute` |
+| 7 | View technology | `view_layer` detected | `myfaces` if JSF detected and >= 5 `.xhtml` view files in `<source>`; `qute` otherwise |
 | 8 | Security approach | `full-quarkus` + `spring_security` detected | `none` |
 
 If a Stage 2 condition is not met, skip the question and set the field to `none`.
