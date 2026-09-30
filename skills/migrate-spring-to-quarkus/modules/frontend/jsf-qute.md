@@ -7,7 +7,7 @@ All files to transform are in `<target>`. Do not modify `<source>`.
 ## What to do
 
 - [ ] Add `quarkus-rest-qute` dependency to the build file
-- [ ] Remove JSF dependencies (`jakarta.faces`, `myfaces`, `primefaces`, `omnifaces`, `richfaces`)
+- [ ] Remove JSF dependencies (`jakarta.faces`, `myfaces`, `primefaces`, `omnifaces`, `joinfaces`)
 - [ ] Convert `.xhtml` files to Qute `.html` templates under `src/main/resources/templates/`
 - [ ] Convert JSF components (`<h:inputText>`, `<h:dataTable>`, `<h:commandButton>`) to standard HTML5 and Qute loops/forms
 - [ ] Convert Facelets tags (`ui:composition`, `ui:insert`, `ui:define`, `ui:include`) to Qute includes and insert sections

@@ -177,7 +177,7 @@ A few more decisions based on what I found in the source project:
 - **Persistence strategy** (JPA detected, full-quarkus only): panache-active-record / panache-repository / hibernate-orm?
 - **REST framework** (web layer detected, full-quarkus only): quarkus-rest (RESTEasy Reactive, recommended) / resteasy-classic?
 - **Messaging transport** (messaging detected): kafka / amqp / artemis-jms?
-- **View technology** (view layer detected): qute (recommended) / myfaces (maintain JSF)?
+- **View technology** (view layer detected): qute (recommended) / myfaces (maintain JSF, if JSF detected) / freemarker (maintain FreeMarker, if FreeMarker detected)?
 - **Security approach** (Spring Security detected, full-quarkus only): oidc / basic / jwt / none?
 
 Please reply with your choices before I continue.
@@ -192,7 +192,9 @@ In **non-interactive mode**, apply defaults without asking:
 | 4 | Persistence strategy | `full-quarkus` + `spring_data_jpa` detected | `panache-active-record` |
 | 5 | REST framework | `full-quarkus` + `spring_web` detected | `quarkus-rest` |
 | 6 | Messaging transport | Messaging detected (`spring_kafka`, `spring_rabbitmq`, `spring_jms`) | Matching detected transport |
-| 7 | View technology | `view_layer` detected | `myfaces` if JSF detected and >= 5 `.xhtml` view files in `<source>`; `qute` otherwise |
+| 7 | View technology | `full-quarkus` + `view_layer` detected (any technology) | `qute` |
+| 7 | View technology | `spring-compat` + JSF detected | `myfaces` |
+| 7 | View technology | `spring-compat` + FreeMarker detected | `freemarker` |
 | 8 | Security approach | `full-quarkus` + `spring_security` detected | `none` |
 
 If a Stage 2 condition is not met, skip the question and set the field to `none`.
@@ -249,7 +251,7 @@ decisions:
   rest_framework_source: "argument|config-file|user|default"
   messaging_transport: "kafka|amqp|artemis-jms|none"
   messaging_transport_source: "argument|config-file|user|default"
-  view_layer: "qute|myfaces|none"
+  view_layer: "qute|myfaces|freemarker|none"
   view_layer_source: "argument|config-file|user|default"
   security_approach: "oidc|basic|jwt|none"
   security_approach_source: "argument|config-file|user|default"

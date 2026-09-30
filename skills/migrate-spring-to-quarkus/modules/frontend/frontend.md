@@ -8,7 +8,7 @@ All files to transform are in `<target>` (already copied there by the build modu
 
 Read `<target>/migration-spec.yaml` at module start if it exists:
 - If `decisions.view_layer == 'none'`: Skip frontend migration.
-- If `decisions.view_layer` is `qute` or `myfaces`: Proceed with the steps below.
+- If `decisions.view_layer` is `qute`, `myfaces`, or `freemarker`: Proceed with the steps below.
 
 ## Instructions
 
@@ -58,7 +58,7 @@ const token = document.querySelector('meta[name="_csrf"]')?.content;
 const header = document.querySelector('meta[name="_csrf_header"]')?.content;
 ```
 
-If the application requires CSRF protection in Quarkus, use `quarkus-csrf-reactive`.
+If the application requires CSRF protection in Quarkus, use `quarkus-rest-csrf`.
 
 ### Step 4: Execute Technology Guide
 

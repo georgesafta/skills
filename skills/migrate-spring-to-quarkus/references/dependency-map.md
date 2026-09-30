@@ -44,7 +44,7 @@
 | Spring Boot | Quarkus (Full / Qute) | Quarkus (Compat / Preserved) |
 |---|---|---|
 | `spring-boot-starter-thymeleaf` | `quarkus-rest-qute` (when controllers return `TemplateInstance`) or `quarkus-qute-web` (auto-serve templates without REST resources). **Never** use `quarkus-qute` alone — it lacks REST integration. | -- |
-| `spring-boot-starter-freemarker` | `quarkus-rest-qute` | -- |
+| `spring-boot-starter-freemarker` | `quarkus-rest-qute` | `io.quarkiverse.freemarker:quarkus-freemarker` |
 | JSP (`jstl`, `tomcat-embed-jasper`) | `quarkus-rest-qute` | -- |
 | JSF / PrimeFaces (< 5 views) | `quarkus-rest-qute` | -- |
 | JSF / PrimeFaces (>= 5 views) | -- | `org.apache.myfaces.core.extensions.quarkus:myfaces-quarkus` (+ `io.quarkiverse.primefaces:quarkus-primefaces`) |
