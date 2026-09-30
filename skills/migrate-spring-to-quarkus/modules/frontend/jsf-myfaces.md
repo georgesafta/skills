@@ -9,7 +9,7 @@ All files to transform are in `<target>`. Do not modify `<source>`.
 - [ ] Add `org.apache.myfaces.core.extensions.quarkus:myfaces-quarkus` (and `io.quarkiverse.primefaces:quarkus-primefaces` if PrimeFaces is used)
 - [ ] Move `.xhtml` files to `src/main/resources/META-INF/resources/` (mandatory location for MyFaces in Quarkus)
 - [ ] Update XML namespaces in `.xhtml` files from `xmlns.jcp.org` to `jakarta.faces.*`
-- [ ] Create or update `web.xml` in `src/main/resources/META-INF/resources/web.xml` with `FacesServlet` mapping
+- [ ] Create or update `web.xml` in `src/main/resources/META-INF/web.xml` with `FacesServlet` mapping
 - [ ] Convert `@ManagedBean` to `@Named` + standard CDI scopes (`@RequestScoped`, `@SessionScoped`, `@ApplicationScoped`, `@ViewScoped`)
 - [ ] Replace Spring scope annotations (`@SessionScope`, `@RequestScope`) with CDI equivalents
 - [ ] Replace `FacesContext` injection with `FacesContext.getCurrentInstance()`
@@ -45,7 +45,7 @@ Use the Quarkus extension tooling to automatically resolve compatible versions:
 XHTML files **MUST** be placed under `src/main/resources/META-INF/resources/`. Quarkus MyFaces does not serve views from `webapp/` or `resources/templates/`.
 
 ### 2. web.xml Configuration
-Create `src/main/resources/META-INF/resources/web.xml`:
+Create `src/main/resources/META-INF/web.xml`:
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
@@ -92,7 +92,7 @@ public class UserBean implements Serializable {
 
 - [ ] `myfaces-quarkus` dependency is present in build file
 - [ ] All `.xhtml` files are located in `src/main/resources/META-INF/resources/`
-- [ ] `web.xml` exists in `src/main/resources/META-INF/resources/web.xml` with `FacesServlet` configured
+- [ ] `web.xml` exists in `src/main/resources/META-INF/web.xml` with `FacesServlet` configured
 - [ ] XHTML namespaces use `jakarta.faces.*` (not `xmlns.jcp.org`)
 - [ ] No Spring scope annotations (`@SessionScope`, `@RequestScope`) remain on backing beans
 - [ ] No `FacesContext` injection via `@Inject` remains (uses `FacesContext.getCurrentInstance()`)
