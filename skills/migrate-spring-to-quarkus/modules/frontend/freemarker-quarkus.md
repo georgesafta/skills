@@ -1,6 +1,6 @@
 # Module: Frontend / View Layer — FreeMarker with Quarkus (quarkus-freemarker)
 
-Preserve the FreeMarker view layer for larger applications (>= 5 template files) using the Quarkiverse
+Preserve the FreeMarker view layer using the Quarkiverse
 `io.quarkiverse.freemarker:quarkus-freemarker` extension.
 
 All files to transform are in `<target>`. Do not modify `<source>`.

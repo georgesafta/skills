@@ -23,7 +23,7 @@ Inspect `<source>` to determine which view technologies are present:
 | **FreeMarker** | `.ftl` / `.ftlh` / `.ftlx` in `src/main/resources/templates/`, `freemarker.*` imports, `FreeMarkerConfigurer` bean, or `spring-boot-starter-freemarker` | [freemarker.md](freemarker.md) |
 | **JSF** | `.xhtml` in `src/main/webapp/` or `src/main/resources/META-INF/resources/`, `faces-config.xml`, `@ManagedBean`, `@FacesConverter`, `@FacesValidator`, `@ViewScoped` | [jsf.md](jsf.md) |
 
-Execute the relevant sub-module based on the detected view technology.
+Multiple technologies may be present in the same project. If so, execute the relevant sub-modules in sequence.
 
 ### Step 2: Move Static Resources
 
@@ -60,9 +60,9 @@ const header = document.querySelector('meta[name="_csrf_header"]')?.content;
 
 If the application requires CSRF protection in Quarkus, use `quarkus-rest-csrf`.
 
-### Step 4: Execute Technology Guide
+### Step 4: Execute Technology Guides
 
-Execute the detected sub-module guide (`thymeleaf.md`, `jsp.md`, `freemarker.md`, or `jsf.md`) and verify its Validation Checklist.
+Execute each detected sub-module guide (`thymeleaf.md`, `jsp.md`, `freemarker.md`, `jsf.md`) and verify its Validation Checklist.
 
 ### Step 5: Compile
 

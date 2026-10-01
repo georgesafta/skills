@@ -1,6 +1,6 @@
 # Module: Frontend / View Layer — JSF with Quarkus (MyFaces)
 
-Maintain JSF view layer for larger applications (>= 5 view files) using the Quarkus Apache MyFaces and PrimeFaces extensions.
+Maintain JSF view layer using the Quarkus Apache MyFaces and PrimeFaces extensions.
 
 All files to transform are in `<target>`. Do not modify `<source>`.
 
