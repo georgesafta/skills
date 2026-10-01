@@ -6,7 +6,7 @@ All files to transform are in `<target>`. Do not modify `<source>`.
 
 ## What to do
 
-- [ ] Ensure `quarkus-rest-qute` dependency is in the build file (and `quarkus-qute-i18n` if i18n is used)
+- [ ] Ensure `quarkus-rest-qute` dependency is in the build file
 - [ ] Convert `.jsp` files to `.html` Qute templates under `src/main/resources/templates/`
 - [ ] Replace JSTL core tags and JSP EL expressions with Qute sections and expressions
 - [ ] Replace Spring form tags (`<form:form>`, `<form:input>`, etc.) with standard HTML and Qute expressions
@@ -93,7 +93,22 @@ Move `fmt:formatDate`, `fmt:formatNumber`, and `fn:*` functions into Java pre-co
 template.data("formattedDate", date.format(DateTimeFormatter.ISO_LOCAL_DATE));
 ```
 
-For `<fmt:message key="label.welcome"/>`, use Qute i18n `{msg:welcome}` (requires `quarkus-qute-i18n`).
+For `<fmt:message key="label.welcome"/>`, use Qute i18n `{msg:welcome}`. Qute i18n is built into `quarkus-rest-qute`. To activate `{msg:key}`, define a `@MessageBundle` interface in Java and place localized files under `src/main/resources/messages/`:
+
+```java
+package org.acme;
+
+import io.quarkus.qute.i18n.Message;
+import io.quarkus.qute.i18n.MessageBundle;
+
+@MessageBundle
+public interface AppMessages {
+    @Message("Welcome to the application!")
+    String welcome();
+}
+```
+
+Localized overrides can be placed in `src/main/resources/messages/msg_es.properties` (e.g. `welcome=¡Bienvenido a la aplicación!`).
 
 ## Validation checklist
 
